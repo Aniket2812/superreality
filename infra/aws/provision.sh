@@ -19,12 +19,20 @@ if ! ccloud cluster info "$CLUSTER_NAME" -o json >/dev/null 2>&1; then
 fi
 
 DB_USER="superreality_app"
-if DATABASE_URL="$(aws ssm get-parameter --region "$AWS_REGION" --name /superreality/database-url --with-decryption --query Parameter.Value --output text 2>/dev/null)"; then
-  echo "Reusing the existing encrypted CockroachDB application credential."
-else
+DATABASE_URL="$(aws ssm get-parameter --region "$AWS_REGION" --name /superreality/database-url --with-decryption --query Parameter.Value --output text 2>/dev/null || true)"
+if [[ "$DATABASE_URL" == *"@db:26257/"* ]] || [[ -z "$DATABASE_URL" ]]; then
   DB_PASSWORD="$(openssl rand -base64 36 | tr -dc 'A-Za-z0-9' | head -c 32)"
-  ccloud cluster user create "$CLUSTER_NAME" "$DB_USER" --password "$DB_PASSWORD" >/dev/null
-  BASE_URL="$(ccloud cluster connection-string "$CLUSTER_NAME" --sql-user "$DB_USER" --database defaultdb --os LINUX --hide-header)"
+  if ccloud cluster user list "$CLUSTER_NAME" -o json -q | grep -q "\"$DB_USER\""; then
+    ccloud cluster user password "$CLUSTER_NAME" "$DB_USER" --password "$DB_PASSWORD" >/dev/null
+  else
+    ccloud cluster user create "$CLUSTER_NAME" "$DB_USER" --password "$DB_PASSWORD" >/dev/null
+  fi
+  BASE_URL="$(
+    ccloud cluster connection-string "$CLUSTER_NAME" --sql-user "$DB_USER" \
+      --database defaultdb --os LINUX -q \
+      | sed -n 's/^\(postgresql:\/\/[^[:space:]]*\)$/\1/p' \
+      | head -n 1
+  )"
   DATABASE_URL="$(BASE_URL="$BASE_URL" DB_PASSWORD="$DB_PASSWORD" python3 - <<'PY'
 import os
 from urllib.parse import quote, urlsplit, urlunsplit
@@ -37,6 +45,8 @@ netloc = f"{quote(parts.username or 'superreality_app')}:{quote(os.environ['DB_P
 print(urlunsplit((parts.scheme or "postgresql", netloc, parts.path, parts.query, "")))
 PY
 )"
+else
+  echo "Reusing the existing encrypted CockroachDB Cloud application credential."
 fi
 
 aws ssm put-parameter --region "$AWS_REGION" --name /superreality/database-url \

@@ -38,6 +38,23 @@ class FakePool:
         return FakeAcquire(self.connection)
 
 
+def test_database_url_moves_cloud_tls_options_out_of_asyncpg_dsn(monkeypatch):
+    monkeypatch.setattr(store_mod.config, "DB_SSL", None)
+    monkeypatch.setattr(
+        store_mod.config,
+        "DATABASE_URL",
+        "postgresql://user:pass@cluster.example:26257/defaultdb"
+        "?sslmode=verify-full&channel_binding=require&application_name=test",
+    )
+
+    assert (
+        store_mod._database_url()
+        == "postgresql://user:pass@cluster.example:26257/defaultdb"
+        "?application_name=test"
+    )
+    assert store_mod.config.SQLALCHEMY_CONNECT_ARGS["ssl"] is True
+
+
 async def test_add_listing_is_tenant_scoped_and_vectorized(monkeypatch):
     connection = FakeConnection()
 

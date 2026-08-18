@@ -91,6 +91,7 @@ Resources:
           ENV=prod
           OPENAI_API_KEY=$OPENAI_KEY
           DATABASE_URL=$DB_URL
+          DB_SSL=true
           JWT_SECRET_KEY=$JWT_SECRET
           AGENT_SERVICE_SECRET=$AGENT_SECRET
           LIVEKIT_API_KEY=superreality

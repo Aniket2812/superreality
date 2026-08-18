@@ -37,7 +37,16 @@ def _database_url() -> str:
     """Return an asyncpg-compatible CockroachDB/PostgreSQL wire URL."""
     url = config.DATABASE_URL or config.SQLALCHEMY_DATABASE_URI
     parts = urlsplit(url)
-    query = [(k, v) for k, v in parse_qsl(parts.query) if k != "channel_binding"]
+    # asyncpg interprets ``sslmode=verify-full`` using libpq's default
+    # ~/.postgresql/root.crt path. Containers do not have that file. The
+    # application config converts the mode into ``ssl=True`` instead, which
+    # uses Python's system CA store and works with CockroachDB Cloud's public
+    # certificate chain.
+    query = [
+        (k, v)
+        for k, v in parse_qsl(parts.query)
+        if k.lower() not in {"channel_binding", "sslmode", "ssl"}
+    ]
     return urlunsplit(("postgresql", parts.netloc, parts.path, urlencode(query), ""))
 
 
@@ -46,6 +55,7 @@ async def get_memory_pool() -> asyncpg.Pool:
     if _pool is None:
         async with _pool_lock:
             if _pool is None:
+                connect_args = config.SQLALCHEMY_CONNECT_ARGS
                 _pool = await asyncpg.create_pool(
                     _database_url(),
                     min_size=int(os.getenv("DB_POOL_MIN_SIZE", "1")),
@@ -53,6 +63,7 @@ async def get_memory_pool() -> asyncpg.Pool:
                     max_inactive_connection_lifetime=300,
                     command_timeout=30,
                     server_settings={"application_name": "superreality-memory"},
+                    ssl=connect_args.get("ssl"),
                 )
     return _pool
 
