@@ -7,8 +7,8 @@ services:
       - --insecure
       # New CockroachDB releases restrict insecure RPC to localhost. Keep the
       # single-node RPC listener private while exposing only SQL to the Docker network.
-      - --listen-addr=localhost:26357
-      - --sql-addr=0.0.0.0:26257
+      - --listen-addr=localhost:26257
+      - --sql-addr=db:26257
       - --advertise-sql-addr=db:26257
       - --http-addr=0.0.0.0:8080
     volumes:
@@ -17,7 +17,7 @@ services:
       - "26257:26257"
       - "8081:8080" # CockroachDB Console
     healthcheck:
-      test: ["CMD", "cockroach", "sql", "--insecure", "--host=localhost:26257", "--execute=SELECT 1"]
+      test: ["CMD", "cockroach", "sql", "--insecure", "--host=db:26257", "--execute=SELECT 1"]
       interval: 5s
       timeout: 3s
       retries: 20
