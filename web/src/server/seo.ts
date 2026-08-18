@@ -12,9 +12,9 @@ export interface RouteMeta {
 
 const ROUTE_META = {
   '/': {
-    title: 'wondering: agentic memory built with CockroachDB and AWS',
+    title: 'wondering: turn missed calls into booked showings',
     description:
-      'A CockroachDB × AWS Hackathon voice agent that remembers buyers, retrieves relevant homes with distributed vector search, and acts on persistent context.',
+      'An AI buyer concierge that answers inquiries, qualifies leads, recommends relevant homes, remembers every conversation, and books showings.',
   },
 } as const;
 
@@ -24,7 +24,7 @@ function getOrganizationJsonLd(): object {
     '@id': ORG_ID,
     name: SITE_NAME,
     url: SITE_URL,
-    description: 'An agentic-memory voice application built with CockroachDB, AWS, and OpenAI.',
+    description: 'An AI buyer concierge that turns missed real estate inquiries into informed conversations and booked showings.',
     sameAs: [
       'https://www.linkedin.com/in/mahimairaja',
       'https://github.com/mahimairaja',
@@ -54,7 +54,7 @@ function getServiceJsonLd(): object {
     '@type': 'ProfessionalService',
     name: SITE_NAME,
     url: SITE_URL,
-    description: 'AI voice agent that uses CockroachDB as persistent memory to recall buyer context and act on it.',
+    description: 'AI buyer concierge that answers calls, understands buyer needs, recommends homes, and books showings.',
     provider: {
       '@type': 'Person',
       name: 'Mahimai Raja J',
@@ -81,7 +81,7 @@ function getServiceJsonLd(): object {
 const PRODUCT_LD = {
   '@type': 'Product',
   name: 'wondering',
-  description: 'An AI voice agent with CockroachDB-backed persistent and semantic memory.',
+  description: 'An AI buyer concierge that remembers every conversation and helps agents turn inquiries into showings.',
   brand: { '@type': 'Brand', name: 'wondering' },
   url: SITE_URL,
 };
@@ -89,10 +89,10 @@ const PRODUCT_LD = {
 const FAQ_LD = {
   '@type': 'FAQPage',
   mainEntity: [
-    ['Why CockroachDB?', 'It keeps operational state and semantic vector memory in one resilient source of truth.'],
-    ['Which challenge tools are used?', 'CockroachDB Distributed Vector Indexing and the agent-ready ccloud CLI.'],
-    ['What does the agent remember?', 'Buyer identity, preferences, previous conversations, listing matches, and showing state.'],
-    ['Where does it run?', 'The application runs on AWS in ap-south-1 and connects to CockroachDB Cloud.'],
+    ['Will it sound robotic?', 'No. The assistant listens, responds naturally, and asks useful follow-up questions.'],
+    ['Can it make up a listing?', 'No. Recommendations are grounded in the listings connected to the agent workspace.'],
+    ['What happens when a buyer calls again?', 'wondering continues from saved preferences and previous conversations.'],
+    ['When does the human agent step in?', 'The agent receives the full buyer profile, call outcome, matches, and showing details.'],
   ].map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
 };
 

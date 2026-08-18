@@ -15,14 +15,14 @@ export function AppShell() {
     <div className="min-h-svh bg-background">
       <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-xl">
         <div className="bg-[#201e1b] px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.13em] text-white sm:text-xs">
-          Built for CockroachDB × AWS Hackathon: Build with Agentic Memory
+          Built for the Agentic Memory Hackathon
         </div>
         <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center gap-5 px-5 sm:px-8">
           <Brand />
           <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex" aria-label="Main navigation">
-            <NavLink to="/#memory" className="transition-colors hover:text-foreground">Memory</NavLink>
-            <NavLink to="/#architecture" className="transition-colors hover:text-foreground">Architecture</NavLink>
-            <NavLink to="/#proof" className="transition-colors hover:text-foreground">Hackathon stack</NavLink>
+            <NavLink to="/#problem" className="transition-colors hover:text-foreground">The problem</NavLink>
+            <NavLink to="/#how" className="transition-colors hover:text-foreground">How it works</NavLink>
+            <NavLink to="/#memory" className="transition-colors hover:text-foreground">What it remembers</NavLink>
           </nav>
           <div className="ml-auto flex items-center gap-2">
             {clerkEnabled ? (

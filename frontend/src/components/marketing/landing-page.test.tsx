@@ -18,27 +18,28 @@ function renderPage() {
   );
 }
 
-test("agentic memory headline renders", () => {
+test("product headline renders", () => {
   renderPage();
-  expect(screen.getByText(/An agent that remembers and acts\./i)).toBeInTheDocument();
+  expect(screen.getByText(/Turn missed calls into booked showings\./i)).toBeInTheDocument();
 });
 
-test("hackathon stack renders without commercial pricing", () => {
+test("product story renders without infrastructure-heavy copy", () => {
   renderPage();
-  expect(screen.getByText("Distributed Vector Indexing")).toBeInTheDocument();
-  expect(screen.getByText("Agent-ready ccloud CLI")).toBeInTheDocument();
+  expect(screen.getByText(/Buyer intent disappears into voicemail/i)).toBeInTheDocument();
+  expect(screen.getByText(/Returning buyers never start over/i)).toBeInTheDocument();
+  expect(screen.queryByText(/ccloud CLI|Distributed Vector Indexing/i)).not.toBeInTheDocument();
   expect(screen.queryByText(/pricing|per month|free week/i)).not.toBeInTheDocument();
 });
 
 test("buyer memory story renders", () => {
   renderPage();
-  expect(screen.getByText(/Every call improves the next action/i)).toBeInTheDocument();
-  expect(screen.getByText(/durable identity, history, semantic recall/i)).toBeInTheDocument();
+  expect(screen.getByText(/The next call begins with the buyer's saved needs/i)).toBeInTheDocument();
+  expect(screen.getByText(/CockroachDB keeps buyer history/i)).toBeInTheDocument();
 });
 
 test("primary and secondary CTAs render", () => {
   renderPage();
-  expect(screen.getAllByRole("link", { name: /Try the live agent/i }).length).toBeGreaterThan(0);
+  expect(screen.getAllByRole("link", { name: /Try the live concierge/i }).length).toBeGreaterThan(0);
   const liveLinks = screen
     .getAllByRole("link")
     .filter((a) => a.getAttribute("href") === "/call/demo");
