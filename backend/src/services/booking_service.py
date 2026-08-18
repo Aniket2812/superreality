@@ -120,7 +120,9 @@ async def book_showing(payload: dict[str, Any], tenant_id: str) -> dict[str, Any
             tenant_id=tenant_id,
             phone=payload.get("phone"),
             property_code=payload.get("property_code"),
-            address=payload.get("address"),
+            # Persist the catalog-grounded address used for the Cal booking, not a
+            # caller/model supplied value that may be absent or stale.
+            address=address,
             when_utc=payload["start"],
         )
     return _to_dict(updated)
