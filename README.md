@@ -41,6 +41,21 @@ OpenAI handles all voice AI work: `gpt-4o-mini-transcribe` for speech recognitio
 `gpt-4.1-mini` for reasoning, `gpt-4o-mini-tts` for speech, and
 `text-embedding-3-small` for memory embeddings.
 
+### Connect real calendar bookings
+
+Create a free Cal.com account, connect its Google or Outlook calendar, and create an API key
+under **Settings > Security**. The setup script validates the key, creates or reuses a
+30-minute `Property Showing` event type, stores the secret in AWS SSM Parameter Store, and
+restarts the deployed backend and voice worker without exposing the key to the browser:
+
+```bash
+export CAL_API_KEY=cal_live_...
+export CAL_DEFAULT_TIMEZONE=America/Toronto
+./infra/aws/configure-cal.sh
+```
+
+Set `RR_CAL_EVENT_TYPE_ID` before running the script to use an existing event type instead.
+
 ## Verify
 
 ```bash

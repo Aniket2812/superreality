@@ -43,7 +43,10 @@ _SLOTS = {
 
 
 def _scheduling(api):
-    return SchedulingAgent(CallContext(realtor="Riley", api=api))
+    ctx = CallContext(realtor="Riley", api=api)
+    ctx._catalog = [{"code": "RR-102", "address": "1 Main St"}]
+    ctx.room = "t_demo_test"
+    return SchedulingAgent(ctx)
 
 
 async def test_check_availability_captures_offered_slots():
@@ -61,6 +64,7 @@ async def test_book_showing_rejects_an_unoffered_slot():
         property_code="RR-102",
         start_utc="2026-07-08T13:00:00Z",
         name="Dana",
+        email="dana@example.com",
         phone="+15195550100",
     )
     assert "open" in out.lower() or "available" in out.lower()
@@ -81,10 +85,14 @@ async def test_book_showing_accepts_an_offered_slot(monkeypatch):
         property_code="RR-102",
         start_utc="2026-07-08T13:00:00Z",
         name="Dana",
+        email="dana@example.com",
         phone="+15195550100",
     )
     assert api.booking_calls
     assert api.booking_calls[0]["start"] == "2026-07-08T13:00:00Z"
+    assert api.booking_calls[0]["address"] == "1 Main St"
+    assert api.booking_calls[0]["email"] == "dana@example.com"
+    assert api.booking_calls[0]["room_name"] == "t_demo_test"
 
 
 async def test_to_concierge_shares_context():

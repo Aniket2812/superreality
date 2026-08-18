@@ -3,6 +3,7 @@ from httpx import ASGITransport, AsyncClient
 
 import src.api.endpoints.pipeline as pipeline_mod
 from src.core.clerk import get_current_tenant
+from src.core.config import config
 
 TENANT = "org_pipeline_test"
 
@@ -56,11 +57,14 @@ async def test_pipeline_returns_bookings_and_calls_scoped_to_tenant(monkeypatch)
     assert seen == {"bookings_tenant": TENANT, "calls_tenant": TENANT}
 
 
-async def test_pipeline_requires_authentication():
+async def test_pipeline_requires_authentication(monkeypatch):
     # No dependency override: the Clerk dependency must reject an unauthenticated request
     # rather than leak another tenant's pipeline.
     app = FastAPI()
     app.include_router(pipeline_mod.router, prefix="/api/v1")
+    # The public hackathon deployment deliberately exposes a read-only `demo` tenant only
+    # when Clerk is absent. Simulate a normal configured SaaS deployment here.
+    monkeypatch.setattr(config, "CLERK_ISSUER", "https://clerk.example", raising=False)
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as c:

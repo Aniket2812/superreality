@@ -102,6 +102,7 @@ def test_scheduling_covers_availability_and_booking():
     assert "showing" in text
     assert "book" in text
     assert "offer only" in text  # never invent a time
+    assert "email" in text
 
 
 def test_persona_preamble_personalizes_each_specialist():

@@ -44,6 +44,7 @@ async def test_booking_is_idempotent_with_cal_stubbed(monkeypatch):
         "start": "2026-07-01T13:00:00Z",
         "timezone": "America/Toronto",
         "name": "Dana",
+        "email": "dana@example.com",
         "phone": "+15195550100",
     }
     async with AsyncClient(

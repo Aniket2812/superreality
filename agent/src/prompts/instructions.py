@@ -164,7 +164,9 @@ open showing time and book it.
 Call check_availability to look up open times, and offer only the times it returns. When the \
 buyer picks one, call book_showing with the exact id shown in parentheses next to that time; \
 never build the timestamp yourself from the spoken time. Never invent or imply a time that \
-check_availability did not offer. If booking does not go through, take the buyer's number and \
+check_availability did not offer. Before booking, collect the buyer's name, phone number, and \
+email address, and read the email back once for confirmation. Use the exact listing code for \
+the home they selected. If booking does not go through, take the buyer's number and \
 offer to follow up.
 
 When the buyer is done booking, hand the call back to the concierge to wrap up."""

@@ -17,7 +17,7 @@ import httpx
 
 CAL_BASE_URL = "https://api.cal.com/v2"
 # Version-pinned; omitting these silently routes to an older, incompatible handler.
-CAL_API_VERSION_BOOKINGS = "2024-08-13"
+CAL_API_VERSION_BOOKINGS = "2026-02-25"
 CAL_API_VERSION_SLOTS = "2024-09-04"
 
 
@@ -106,9 +106,11 @@ async def create_showing_booking(
     event_type_id: int,
     start_utc_iso: str,
     attendee_name: str,
+    attendee_email: str,
     attendee_phone: str,
     attendee_timezone: str,
     property_address: str,
+    property_code: str | None = None,
     api_key: str,
     transport: httpx.AsyncBaseTransport | None = None,
 ) -> dict[str, Any]:
@@ -118,17 +120,18 @@ async def create_showing_booking(
         "start": _to_utc_z(start_utc_iso, attendee_timezone),
         "attendee": {
             "name": attendee_name,
+            "email": attendee_email,
             "phoneNumber": _to_e164(attendee_phone),
             "timeZone": attendee_timezone,
             "language": "en",
         },
-        # Only fields this event type actually defines. The property address goes in `notes`; a
-        # custom `property-address` field does not exist on the event type and cal.com rejects
-        # the whole booking (400) if we send an unknown field.
-        "bookingFieldsResponses": {
-            "notes": f"Property showing for {property_address}".strip(),
+        # Metadata is supported for every event type. Avoid bookingFieldsResponses here: Cal
+        # rejects response keys that the owner's event type did not explicitly define.
+        "metadata": {
+            "source": "wondering",
+            "propertyAddress": property_address[:500],
+            "propertyCode": (property_code or "")[:500],
         },
-        "metadata": {"source": "realtyrecall"},
     }
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -154,5 +157,7 @@ async def create_showing_booking(
         "status": data["status"],
         "start": data["start"],
         "end": data.get("end"),
-        "synced": bool(data.get("references")),
+        # A 201 accepted response means Cal owns the durable booking. External calendar
+        # references are not included in every v2 response, even when calendar sync succeeds.
+        "synced": data["status"] == "accepted",
     }

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class BookingRequest(BaseModel):
@@ -8,6 +8,7 @@ class BookingRequest(BaseModel):
     start: str  # ISO 8601 UTC start time
     timezone: str | None = None
     name: str | None = None
+    email: EmailStr
     phone: str | None = None
     room_name: str | None = None
 
@@ -19,3 +20,4 @@ class BookingResponse(BaseModel):
     cal_uid: str | None = None
     synced: bool
     address: str | None = None
+    start: str | None = None

@@ -84,12 +84,18 @@ Resources:
           cd /opt/superreality
           DB_URL=$(aws ssm get-parameter --name /superreality/database-url --with-decryption --query Parameter.Value --output text --region ${AWS::Region})
           OPENAI_KEY=$(aws ssm get-parameter --name /superreality/openai-api-key --with-decryption --query Parameter.Value --output text --region ${AWS::Region})
+          CAL_KEY=$(aws ssm get-parameter --name /superreality/cal-api-key --with-decryption --query Parameter.Value --output text --region ${AWS::Region} 2>/dev/null || true)
+          CAL_EVENT=$(aws ssm get-parameter --name /superreality/cal-event-type-id --query Parameter.Value --output text --region ${AWS::Region} 2>/dev/null || true)
+          CAL_TZ=$(aws ssm get-parameter --name /superreality/cal-default-timezone --query Parameter.Value --output text --region ${AWS::Region} 2>/dev/null || echo America/Toronto)
           JWT_SECRET=$(openssl rand -hex 32)
           AGENT_SECRET=$(openssl rand -hex 32)
           LIVEKIT_SECRET=$(openssl rand -hex 32)
           cat > .env <<ENVFILE
           ENV=prod
           OPENAI_API_KEY=$OPENAI_KEY
+          CAL_API_KEY=$CAL_KEY
+          RR_CAL_EVENT_TYPE_ID=$CAL_EVENT
+          CAL_DEFAULT_TIMEZONE=$CAL_TZ
           DATABASE_URL=$DB_URL
           DB_SSL=true
           JWT_SECRET_KEY=$JWT_SECRET

@@ -46,17 +46,20 @@ async def test_create_showing_booking_posts_request_and_parses():
         event_type_id=123,
         start_utc_iso="2026-07-01T13:00:00Z",
         attendee_name="Dana",
+        attendee_email="dana@example.com",
         attendee_phone="+15195550100",
         attendee_timezone="America/Toronto",
         property_address="123 Maple St, Sarnia",
+        property_code="S1",
         api_key="k",
         transport=httpx.MockTransport(handler),
     )
     assert seen["path"] == "/v2/bookings"
+    assert cal_service.CAL_API_VERSION_BOOKINGS == "2026-02-25"
     assert "123 Maple St, Sarnia" in seen["body"]
-    # The event type has no `property-address` field; sending one makes cal.com reject the
-    # whole booking. The address must ride in `notes` instead.
-    assert "property-address" not in seen["body"]
+    assert "dana@example.com" in seen["body"]
+    assert '"propertyAddress":"123 Maple St, Sarnia"' in seen["body"]
+    assert "bookingFieldsResponses" not in seen["body"]
     assert out["uid"] == "bk_1"
     assert out["status"] == "accepted"
     assert out["synced"] is True
@@ -75,6 +78,7 @@ async def test_create_showing_booking_normalizes_phone_to_e164():
         event_type_id=1,
         start_utc_iso="2026-07-01T13:00:00Z",
         attendee_name="Dana",
+        attendee_email="dana@example.com",
         attendee_phone="5195550100",  # bare 10-digit, as a web caller enters it
         attendee_timezone="America/Toronto",
         property_address="1 A St",

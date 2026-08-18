@@ -40,6 +40,7 @@ class SchedulingAgent(RealtyBaseAgent):
         self.ctx._offered_slots = {
             s["startUtc"] for d in days for s in d.get("slots", []) if s.get("startUtc")
         }
+        self.ctx._availability_timezone = data.get("timezone")
         lines = []
         for d in days:
             slots = [s for s in d.get("slots", []) if s.get("startUtc")]
@@ -59,6 +60,7 @@ class SchedulingAgent(RealtyBaseAgent):
         property_code: str,
         start_utc: str,
         name: str,
+        email: str,
         phone: str,
     ) -> str:
         """Book an in-person showing for a home at a chosen time. start_utc must be the
@@ -71,6 +73,11 @@ class SchedulingAgent(RealtyBaseAgent):
                 "I want to make sure that time is still open. Let me pull up the available "
                 "showing times again and we'll pick one."
             )
+        from src.agents.property_agent import _find_listing
+
+        listing = _find_listing(await self.ctx.ensure_catalog(), property_code)
+        if not listing:
+            return "I couldn't match that home to the realtor's listings. Which home did you mean?"
         phone = phone or self.ctx.last_phone or ""
         if phone:
             self.ctx.last_phone = phone
@@ -83,9 +90,13 @@ class SchedulingAgent(RealtyBaseAgent):
                     {
                         "idempotency_key": self.ctx._booking_key,
                         "property_code": property_code,
+                        "address": listing.get("address"),
                         "start": start_utc,
+                        "timezone": self.ctx._availability_timezone,
                         "name": name,
+                        "email": email,
                         "phone": phone,
+                        "room_name": self.ctx.room,
                     }
                 )
         except Exception as exc:  # noqa: BLE001

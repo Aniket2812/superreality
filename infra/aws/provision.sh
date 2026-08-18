@@ -53,6 +53,16 @@ aws ssm put-parameter --region "$AWS_REGION" --name /superreality/database-url \
   --type SecureString --value "$DATABASE_URL" --overwrite >/dev/null
 aws ssm put-parameter --region "$AWS_REGION" --name /superreality/openai-api-key \
   --type SecureString --value "$OPENAI_API_KEY" --overwrite >/dev/null
+if [[ -n "${CAL_API_KEY:-}" ]]; then
+  aws ssm put-parameter --region "$AWS_REGION" --name /superreality/cal-api-key \
+    --type SecureString --value "$CAL_API_KEY" --overwrite >/dev/null
+fi
+if [[ -n "${RR_CAL_EVENT_TYPE_ID:-}" ]]; then
+  aws ssm put-parameter --region "$AWS_REGION" --name /superreality/cal-event-type-id \
+    --type String --value "$RR_CAL_EVENT_TYPE_ID" --overwrite >/dev/null
+fi
+aws ssm put-parameter --region "$AWS_REGION" --name /superreality/cal-default-timezone \
+  --type String --value "${CAL_DEFAULT_TIMEZONE:-America/Toronto}" --overwrite >/dev/null
 
 aws cloudformation deploy --region "$AWS_REGION" --stack-name "$STACK_NAME" \
   --template-file infra/aws/superreality.yaml --capabilities CAPABILITY_IAM

@@ -37,6 +37,7 @@ def _to_dict(row: Booking) -> dict[str, Any]:
         "cal_uid": row.cal_uid,
         "synced": row.synced,
         "address": row.address,
+        "start": row.start_utc.isoformat() if row.start_utc else None,
     }
 
 
@@ -47,20 +48,42 @@ async def book_showing(payload: dict[str, Any], tenant_id: str) -> dict[str, Any
     if existing is not None:
         return _to_dict(existing)
 
+    property_code = payload.get("property_code")
+    address = payload.get("address")
+    listing = None
+    if property_code:
+        catalog = await get_memory_store().list_listings(tenant_id)
+        listing = next(
+            (item for item in catalog if str(item.get("code")) == str(property_code)),
+            None,
+        )
+        if listing is not None:
+            address = listing.get("address") or address
+
     row = await booking_repository.insert_pending(
         {
             "idempotency_key": key,
             "room_name": payload.get("room_name"),
             "tenant_id": tenant_id,
-            "property_code": payload.get("property_code"),
-            "address": payload.get("address"),
+            "property_code": property_code,
+            "address": address,
             "start_utc": _parse_start(payload.get("start")),
             "timezone": payload.get("timezone"),
             "status": "pending",
             "attendee_name": payload.get("name"),
+            "attendee_email": payload.get("email"),
             "phone": payload.get("phone"),
         }
     )
+
+    # Never let a model-generated or stale code create a calendar event for a home that is
+    # not in this realtor's tenant-scoped catalog.
+    if property_code and listing is None:
+        assert row.id is not None
+        rejected = await booking_repository.set_result(
+            row.id, cal_uid=None, status="rejected", synced=False
+        )
+        return _to_dict(rejected)
 
     api_key = config.CAL_API_KEY.get_secret_value() if config.CAL_API_KEY else None
     if not api_key or config.RR_CAL_EVENT_TYPE_ID is None:
@@ -73,9 +96,11 @@ async def book_showing(payload: dict[str, Any], tenant_id: str) -> dict[str, Any
             event_type_id=config.RR_CAL_EVENT_TYPE_ID,
             start_utc_iso=payload["start"],
             attendee_name=payload.get("name") or "Buyer",
+            attendee_email=payload["email"],
             attendee_phone=payload.get("phone") or "",
             attendee_timezone=payload.get("timezone") or config.CAL_DEFAULT_TIMEZONE,
-            property_address=payload.get("address") or "",
+            property_address=address or "",
+            property_code=property_code,
             api_key=api_key,
         )
     except Exception as exc:  # noqa: BLE001  (cal failure -> reject this row, never retry)

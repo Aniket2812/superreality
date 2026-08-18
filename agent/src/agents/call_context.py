@@ -68,6 +68,9 @@ class CallContext:
         # The startUtc values check_availability offered this call; book_showing only accepts
         # one of these, so a hallucinated/misheard slot never reaches the calendar.
         self._offered_slots: set[str] = set()
+        # The calendar timezone returned alongside those slots. Booking sends it back to Cal
+        # so attendee-facing confirmation times are rendered consistently.
+        self._availability_timezone: str | None = None
         # One idempotency key per call, reused on a booking retry.
         self._booking_key: str | None = None
         # The structured listing catalog, fetched once and reused to push house cards.
