@@ -6,7 +6,7 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   site: 'https://superrealty.mahimai.ca',
   output: 'server',
-  adapter: cloudflare({ imageService: 'compile' }),
+  adapter: cloudflare({ imageService: { build: 'compile' } }),
   integrations: [react()],
   vite: { plugins: [tailwindcss()] },
 });
