@@ -72,9 +72,68 @@ else:
             },
         )
 
+# Keep showing hours independent from the owner account and its other event types. This is
+# especially important when the default schedule uses a different timezone.
+schedules = request("GET", "/schedules", "2024-06-11")
+schedule = next(
+    (item for item in schedules if item.get("name") == "Property Showing Hours"), None
+)
+if schedule is None:
+    schedule = request(
+        "POST",
+        "/schedules",
+        "2024-06-11",
+        {
+            "name": "Property Showing Hours",
+            "timeZone": timezone,
+            "isDefault": False,
+            "availability": [
+                {
+                    "days": [
+                        "Monday",
+                        "Tuesday",
+                        "Wednesday",
+                        "Thursday",
+                        "Friday",
+                        "Saturday",
+                    ],
+                    "startTime": "09:00",
+                    "endTime": "17:00",
+                }
+            ],
+            "overrides": [],
+        },
+    )
+
+# Repair UI-created event types as well as API-created ones. Cal can otherwise retain an
+# unintended all-day duration or the default account schedule.
+event = request(
+    "PATCH",
+    "/event-types/{}".format(event["id"]),
+    "2024-06-14",
+    {
+        "lengthInMinutes": 30,
+        "lengthInMinutesOptions": [30],
+        "slotInterval": 30,
+        "title": "Property Showing",
+        "description": (
+            "A guided in-person property tour scheduled by the wondering voice concierge."
+        ),
+        "scheduleId": schedule["id"],
+        "locations": [
+            {
+                "type": "address",
+                "address": "Property address confirmed during the call",
+                "public": True,
+            }
+        ],
+    },
+)
+
 print(json.dumps({
     "event_type_id": event["id"],
     "event_slug": event.get("slug"),
+    "schedule_id": schedule["id"],
     "username": profile.get("username"),
     "timezone": timezone,
 }))
