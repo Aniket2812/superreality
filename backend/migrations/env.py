@@ -32,9 +32,7 @@ target_metadata = SQLModel.metadata
 
 
 def include_object(obj, name, type_, reflected, compare_to):
-    """Only manage tables defined by our SQLModel models. Cognee owns its own tables in
-    the same database; never let autogenerate drop or alter them.
-    """
+    """Only manage tables defined by our SQLModel models."""
     if type_ == "table" and name not in target_metadata.tables:
         return False
     return True

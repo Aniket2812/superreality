@@ -60,7 +60,7 @@ def build_pool() -> AgentPool:
         max_concurrent_sessions=int(os.getenv("AGENT_MAX_CONCURRENT_SESSIONS", "50")),
         drain_timeout=300,
         # openrtc "top": per-call memory / CPU / event-loop-block attribution, so a
-        # slow Cognee query starving the shared loop is visible per session.
+        # slow memory query starving the shared loop is visible per session.
         enable_introspection=True,
         slow_session_threshold_ms=50.0,
         # Hot reload for dev only (edit ConciergeAgent instructions/tools, swap live

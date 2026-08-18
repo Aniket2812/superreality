@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Shows, for the realtor's newest connected listing, which remembered buyers want it. This is
-// Cognee graph matching made visible: add a home, see who is waiting for it.
+// CockroachDB vector matching made visible: add a home, see who is waiting for it.
 export function MatchCard() {
   const [address, setAddress] = useState<string>("");
   const [report, setReport] = useState<MatchReport | null>(null);

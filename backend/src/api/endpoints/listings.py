@@ -39,7 +39,7 @@ async def create_listing(payload: ListingCreate, tenant_id: CurrentTenant) -> di
 
 @router.get("/live", response_model=list[LiveListing])
 async def list_live_listings(tenant_id: CurrentTenant) -> list[dict]:
-    # The realtor's connected homes, read back from Cognee (what the assistant actually
+    # The realtor's connected homes, read back from CockroachDB (what the assistant actually
     # recommends). This is the post-confirm view: staging clears on confirm, these persist.
     return await get_memory_store().list_listings(tenant_id)
 

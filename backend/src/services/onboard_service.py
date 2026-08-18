@@ -1,11 +1,11 @@
 """Onboarding: extract a realtor's own listings and stage them for review.
 
 Listings are staged (per tenant) so the realtor can review, correct, or remove a home BEFORE
-it goes live to the assistant. A confirm step inserts the corrected set into the Cognee memory
-graph (the system of record). Staging is intentionally not the system of record; it is a
+it goes live to the assistant. A confirm step inserts the corrected set into CockroachDB memory
+store (the system of record). Staging is intentionally not the system of record; it is a
 short-lived review buffer.
 
-The store is persisted to Postgres in the running app (one `staged_onboards` row per tenant),
+The store is persisted to CockroachDB (one `staged_onboards` row per tenant),
 so a review survives a backend restart and works across workers (no WEB_CONCURRENCY=1 crutch).
 It is exposed as a FastAPI dependency; tests override it with an in-memory implementation so the
 suite needs no database.

@@ -14,7 +14,7 @@ router = APIRouter(prefix="/pipeline", tags=["pipeline"])
 @router.get("", response_model=PipelineResponse)
 async def pipeline(tenant_id: CurrentTenant) -> PipelineResponse:
     # The realtor view: recent bookings and calls (the connected homes and tracked buyers
-    # live in Cognee and are shown via the memory-graph visualization). Scoped to the
+    # live in CockroachDB and are shown via the memory-graph visualization). Scoped to the
     # signed-in realtor's tenant (Clerk org), so one realtor never sees another's pipeline.
     bookings = await booking_repository.list_recent(tenant_id=tenant_id)
     calls = await call_log_repository.list_recent(tenant_id=tenant_id)

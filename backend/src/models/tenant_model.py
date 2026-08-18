@@ -6,7 +6,7 @@ from src.models.base_model import BaseModel
 class Tenant(BaseModel, table=True):
     """A realtor account. One tenant maps to one Clerk organization; `clerk_org_id`
     is the tenant boundary. Operational rows carry `tenant_id = clerk_org_id`, and
-    Cognee datasets are namespaced `tenant_{clerk_org_id}_...`.
+    every CockroachDB memory query is prefixed by that tenant id.
     """
 
     __tablename__ = "tenants"

@@ -29,5 +29,5 @@ insights_router = APIRouter(prefix="/insights", tags=["insights"])
 
 @insights_router.get("")
 async def insights(tenant_id: CurrentTenant) -> list[dict[str, Any]]:
-    # Graph-wide market insights (Cognee SUMMARIES) for the realtor dashboard.
+    # CockroachDB-backed market insights for the realtor dashboard.
     return await get_graph_service().insights(tenant_id)

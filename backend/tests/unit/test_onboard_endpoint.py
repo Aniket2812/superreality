@@ -14,7 +14,7 @@ from src.core.tenant import get_agent_tenant_id
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 
-# Staging and the Cognee write are keyed by the Clerk-verified tenant; the test stands in
+# Staging and the CockroachDB write are keyed by the Clerk-verified tenant; the test stands in
 # for it so it does not need a real JWT, and the `realtor` form/query value is display-only.
 TENANT = "org_onboard_test"
 

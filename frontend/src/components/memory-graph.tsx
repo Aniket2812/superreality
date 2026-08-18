@@ -18,8 +18,8 @@ const TYPE_COLOR: Record<string, string> = {
 type GNode = { id: string; name: string; type: string };
 type GLink = { source: string; target: string };
 
-// The buyer + listing memory lives in Cognee (Neo4j graph + pgvector). This renders the
-// realtor's own subgraph and re-fetches every 10s so it visibly grows as calls happen.
+// Buyer and listing memory lives in CockroachDB. This renders the realtor's relational
+// subgraph and re-fetches every 10s so it visibly grows as calls happen.
 export function MemoryGraph() {
   const { theme } = useTheme();
   const [data, setData] = useState<MemoryGraphData>({ nodes: [], edges: [] });
@@ -62,7 +62,7 @@ export function MemoryGraph() {
   }, []);
 
   const graph = useMemo(() => {
-    // Show only the labeled entity types so the graph matches its legend; Cognee's internal
+    // Show only the labeled entity types so the graph matches its legend; internal
     // nodes (chunks, summaries) are dropped, and any edge to a dropped node with it.
     const kept = data.nodes.filter((n) => n.type in TYPE_COLOR);
     const ids = new Set(kept.map((n) => n.id));

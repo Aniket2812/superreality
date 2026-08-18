@@ -77,7 +77,7 @@ async def test_record_llm_usage_reads_tenant_from_context(sink):
 
 
 async def test_track_decorator_attributes_tenant(sink):
-    @vg.track("cognee.recall")
+    @vg.track("cockroach.memory.recall")
     async def fake_op(tenant_id: str, query: str) -> str:
         # A memory op whose (simulated) AI call records under the ambient tenant.
         await vg.record_llm_usage(

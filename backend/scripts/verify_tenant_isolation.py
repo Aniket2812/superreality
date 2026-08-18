@@ -1,7 +1,7 @@
-"""One-off: verify Cognee memory is isolated per tenant.
+"""One-off: verify CockroachDB memory is isolated per tenant.
 
 Adds a distinctive listing for two tenants, then recalls each and asserts neither tenant's
-recall surfaces the other's listing. Requires the local stack (Neo4j + pgvector) + OpenAI.
+recall surfaces the other's listing. Requires CockroachDB and OpenAI.
 
     uv run python scripts/verify_tenant_isolation.py
 """

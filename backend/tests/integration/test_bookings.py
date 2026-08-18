@@ -1,6 +1,6 @@
 """Integration: a booking writes an idempotent Booking row, with cal.com stubbed.
 
-Real DB + Cognee (the Showing node). cal.com is stub-the-send: no real booking is created.
+Real CockroachDB memory (including the Showing event). cal.com is stubbed.
 Run via the integration gate.
 """
 

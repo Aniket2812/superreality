@@ -101,6 +101,20 @@ generates local JWT/agent/LiveKit secrets, and runs the Docker Compose services.
 agent memory remains in managed CockroachDB Cloud on AWS even when the EC2 app host is
 replaced.
 
+### Live hackathon environment
+
+- Application: `https://13.204.9.91.sslip.io`
+- Voice demo: `https://13.204.9.91.sslip.io/call/demo`
+- API docs: `https://13.204.9.91.sslip.io/docs`
+- CockroachDB Cloud cluster: `avian-goat` (`53743128-879f-4486-90fa-5fefd316f107`)
+- CockroachDB plan / location: Basic on AWS `ap-south-1`
+- AWS CloudFormation stack: `superreality-hackathon` in `ap-south-1`
+
+The deployed seed contains three embedded listings and one returning buyer. A live semantic
+recall for “waterfront home in Sarnia with at least three bedrooms” returns the Lakeshore
+Road property through the backend, proving the path OpenAI embedding → CockroachDB vector
+index → grounded agent result.
+
 Provision and deploy:
 
 ```bash

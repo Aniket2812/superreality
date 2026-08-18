@@ -17,7 +17,7 @@ from src.services.onboard_service import StagedStore, extract_drafts
 router = APIRouter(prefix="/onboard", tags=["onboard"])
 
 
-# The realtor console authenticates with Clerk; the staging buffer and the Cognee write are
+# The realtor console authenticates with Clerk; staging and CockroachDB writes are
 # keyed by the verified tenant (their org), so two realtors never see or confirm each other's
 # staged listings. `realtor` is now just the display name written onto the Realtor node.
 @router.post("", response_model=OnboardResponse, status_code=status.HTTP_201_CREATED)
@@ -98,7 +98,7 @@ async def confirm(
     store: StagedStore,
     realtor: str = Form(""),
 ) -> ConfirmResponse:
-    # Insert the reviewed staging set into the tenant's Cognee memory (the system of record).
+    # Insert the reviewed staging set into the tenant's CockroachDB memory.
     drafts = await store.list(tenant_id)
     if not drafts:
         raise HTTPException(

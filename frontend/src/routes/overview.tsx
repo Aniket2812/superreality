@@ -141,11 +141,11 @@ export default function Overview() {
         <CallLinkCard />
       </StorySection>
 
-      {/* 2. How it remembers (Cognee) */}
+      {/* 2. How it remembers (CockroachDB) */}
       <StorySection
         title="How it remembers"
         subtitle="Nothing is forgotten between calls. Every caller and home is stored as a connected node."
-        cognee
+        cockroach
       >
         <MemorySection />
         <Link

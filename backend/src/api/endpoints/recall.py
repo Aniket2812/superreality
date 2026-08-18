@@ -10,7 +10,7 @@ router = APIRouter(prefix="/recall", tags=["recall"])
 
 
 def _first_answer(results: list[Any]) -> str:
-    """Cognee recall returns grounded completion entries; pull the first answer text."""
+    """Return a compact answer from CockroachDB recall result objects."""
     if not results:
         return ""
     first = results[0]
@@ -23,7 +23,7 @@ def _first_answer(results: list[Any]) -> str:
 
 # The agent calls this during a buyer call to find matching listings. It presents the tenant
 # (X-Tenant-Id) and the shared agent secret, and the recall is scoped to that realtor's
-# NodeSet, so cross-realtor homes never leak (verified live, see scripts/verify_tenant_isolation).
+# memory partition, so cross-realtor homes never leak.
 @router.post("", response_model=RecallResponse)
 async def recall(
     payload: RecallRequest,

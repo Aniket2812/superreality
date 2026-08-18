@@ -2,7 +2,7 @@
 
 The profile is a small structured row keyed by (tenant_id, phone), written on
 capture_lead and read at call start. It is the hot cache that lets the assistant
-recognize a returning buyer instantly; Cognee remains the system of record for
+recognize a returning buyer instantly; CockroachDB remains the system of record for
 deep multi-hop recall.
 """
 

@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 
 class ListingDraft(BaseModel):
-    """A parsed listing staged for the realtor to review before it goes live to Cognee."""
+    """A parsed listing staged for review before it becomes durable agent memory."""
 
     id: str
     code: str | None = None
@@ -70,7 +70,7 @@ class ConfirmResponse(BaseModel):
 
 
 class LiveListing(BaseModel):
-    """A connected listing read back from Cognee for the realtor's dashboard (post-confirm)."""
+    """A connected listing read back from CockroachDB after confirmation."""
 
     code: str | None = None
     address: str | None = None

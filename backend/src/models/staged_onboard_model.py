@@ -12,7 +12,7 @@ class StagedOnboard(BaseModel, table=True):
     (and works across workers, removing the WEB_CONCURRENCY=1 crutch).
 
     One row per tenant: the reviewed-but-not-yet-live listing drafts plus the inferred realtor
-    profile. Cleared on confirm (the drafts move into Cognee, the system of record) or when the
+    profile. Cleared on confirm (the drafts move into CockroachDB, the system of record) or when the
     realtor re-onboards. Intentionally not the system of record: a short-lived staging area.
     """
 

@@ -1,21 +1,18 @@
-"""Backend AI-cost telemetry: push the hidden Cognee + onboarding spend to VoiceGateway.
+"""Backend AI-cost telemetry for OpenAI embeddings and onboarding work.
 
 The voice agent's per-call STT/LLM/TTS cost is captured in the agent process (see the
 agent's voicegateway.attach). But a realtor also costs money the moment they onboard and
-every time memory is read or written: the onboarding extraction LLM calls, and Cognee's
-own LLM completions + embeddings behind add/cognify/search/improve. That spend is invisible
+every time memory is written: onboarding extraction and semantic embeddings consume tokens.
+That spend is invisible
 to the call-level view. This module surfaces it, attributed to the same realtor (tenant) and
 the same ``realty-recall`` project, so the true cost-to-serve per realtor is one number.
 
-Two capture paths, one recorder:
+Two call sites, one recorder:
 
-* Cognee routes every LLM completion and embedding through **litellm**, so a single
-  litellm success callback captures them all. Attribution rides a ``ContextVar`` set around
-  each memory op (see ``track``); litellm invokes the async callback in the originating
-  task's context, so the right tenant is in scope when it fires.
-* The onboarding extractor (``llm_service``) calls the OpenAI SDK directly, which litellm
-  never sees, so it records usage explicitly via ``record_llm_usage`` (reading the same
-  ContextVar for the tenant).
+* CockroachDB memory embeddings record OpenAI usage inside the tenant context established
+  by ``track``.
+* The onboarding extractor records its OpenAI usage through the same
+  ``record_llm_usage`` function.
 
 Deliberately decoupled from the VoiceGateway engine package: it prices with ``voice-prices``
 (the same catalog the agent uses, so backend and voice cost are comparable) and POSTs the

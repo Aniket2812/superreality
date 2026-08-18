@@ -166,7 +166,7 @@ export interface LiveListing {
   image_url?: string | null;
 }
 
-// The realtor's connected homes read back from Cognee (what the assistant recommends).
+// The realtor's connected homes read back from CockroachDB memory.
 export async function getLiveListings(): Promise<LiveListing[]> {
   const res = await fetch(`${API_BASE}/listings/live`, {
     headers: await authHeaders(),
@@ -256,7 +256,7 @@ export interface MemoryGraphData {
   edges: GraphEdge[];
 }
 
-// The realtor's Cognee memory subgraph (nodes + edges), scoped to their tenant.
+// The realtor's CockroachDB memory graph projection, scoped to their tenant.
 export async function getGraph(): Promise<MemoryGraphData> {
   const res = await fetch(`${API_BASE}/graph`, { headers: await authHeaders() });
   return asJSON<MemoryGraphData>(res, "getGraph");
@@ -291,7 +291,7 @@ export interface Insight {
   body: string;
 }
 
-// Graph-wide market insights (Cognee SUMMARIES) for the dashboard.
+// CockroachDB-backed market insights for the dashboard.
 export async function getInsights(): Promise<Insight[]> {
   const res = await fetch(`${API_BASE}/insights`, { headers: await authHeaders() });
   return asJSON<Insight[]>(res, "getInsights");

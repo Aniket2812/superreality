@@ -17,8 +17,7 @@ This submission uses two challenge products:
 2. **ccloud CLI** for repeatable AWS-region cluster provisioning, SQL-user lifecycle,
    connection discovery, and operational inspection.
 
-The old Neo4j + pgvector + Cognee split has been removed, eliminating cross-store
-consistency gaps. CockroachDB now powers transactional state, durable long-term memory,
+CockroachDB now powers transactional state, durable long-term memory,
 semantic recall, the memory graph projection, and grounded buyer/listing insights.
 
 ## Run locally

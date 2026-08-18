@@ -13,7 +13,7 @@ const LEGEND = [
   { label: "Showing", color: "#d97706" },
 ];
 
-// The Cognee chapter of the Overview story: the live memory graph plus market insights.
+// The CockroachDB chapter of the Overview story: live memory plus market insights.
 export function MemorySection() {
   const [insights, setInsights] = useState<Insight[]>([]);
 
@@ -32,8 +32,8 @@ export function MemorySection() {
       <Card>
         <CardContent className="flex flex-col gap-3 pt-6">
           <p className="text-sm text-muted-foreground">
-            Every realtor, listing, neighbourhood, buyer, and showing is a node in a Cognee
-            graph. Watch it grow as calls happen.
+            Every realtor, listing, neighbourhood, buyer, and showing is durable CockroachDB
+            memory. Watch the relational graph projection grow as calls happen.
           </p>
           <div className="flex flex-wrap gap-3">
             {LEGEND.map((l) => (

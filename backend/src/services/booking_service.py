@@ -2,7 +2,7 @@
 
 Idempotency is our-side (one Booking row per idempotency_key; the agent uses one key per
 call). cal.com has no idempotency mechanism, so a booking POST is never retried; a cal
-failure marks the row rejected. On an accepted booking we write a Showing node into Cognee.
+failure marks the row rejected. On acceptance we persist a Showing memory in CockroachDB.
 """
 
 from __future__ import annotations

@@ -54,12 +54,12 @@ async def upsert_buyer(
     payload: BuyerUpsert,
     tenant_id: AgentTenant,
 ) -> BuyerUpsertResponse:
-    # Buyers are keyed by phone within the realtor's tenant and owned by Cognee (a per-buyer,
-    # per-tenant dataset). Upsert is safe to call repeatedly: a return call updates memory.
+    # Buyers are keyed by phone within the realtor's CockroachDB tenant partition. Upsert is
+    # safe to call repeatedly: a return call updates the existing memory.
     await get_memory_store().upsert_buyer(tenant_id, payload.model_dump())
     # Dual-write a fast structured snapshot so the next call recognizes this buyer
-    # instantly (get_buyer_profile reads the row, not Cognee). Best-effort: a failure
-    # here must not lose the lead, which Cognee already persisted above.
+    # instantly via its structured row. Best-effort: a failure here must not lose the lead,
+    # which durable memory already persisted above.
     if payload.phone:
         criteria = payload.criteria or {}
         try:
@@ -83,7 +83,7 @@ async def get_buyer_profile(
 ) -> BuyerProfileResponse:
     # The FAST recall path: a direct row read the assistant does at call start, so a
     # returning buyer is recognized in a normal voice turn instead of waiting on the
-    # 10-20s Cognee graph recall. found=false means a new or forgotten caller.
+    # semantic vector recall. found=false means a new or forgotten caller.
     profile = await buyer_profile_repository.get(tenant_id, phone)
     if profile is None:
         return BuyerProfileResponse(found=False, phone=phone)
@@ -120,7 +120,7 @@ async def forget_buyer(
     phone: str,
     tenant_id: AgentTenant,
 ) -> BuyerForgetResponse:
-    # Forget on request: remove exactly this buyer's per-tenant Cognee dataset. A later call
+    # Forget on request: remove exactly this buyer's tenant-scoped memory. A later call
     # from this phone is then treated as a brand-new buyer with no history.
     await get_memory_store().forget_buyer(tenant_id, phone)
     return BuyerForgetResponse(forgotten=True, phone=phone)

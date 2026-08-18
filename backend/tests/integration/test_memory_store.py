@@ -1,9 +1,9 @@
-"""Live integration tests for the Cognee memory store.
+"""Live integration tests for the CockroachDB vector memory store.
 
-Requires the stack up (Neo4j + pgvector Postgres) and OpenAI. Run via
+Requires CockroachDB and OpenAI. Run via
 `task gate:integration` or `pytest -m integration`. The fast gate skips these.
 
-Cognee keeps a process-wide async engine bound to the first event loop it runs on,
+The store keeps a process-wide async pool bound to the first event loop it runs on,
 so the stateful memory operations share one async test (one loop) rather than several.
 """
 

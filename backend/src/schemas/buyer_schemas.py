@@ -29,7 +29,7 @@ class BuyerRecall(BaseModel):
 
 
 class BuyerProfileResponse(BaseModel):
-    """The fast structured profile read at call start (not Cognee). found=false is a
+    """The fast structured CockroachDB profile read at call start. found=false is a
     new or forgotten caller."""
 
     found: bool

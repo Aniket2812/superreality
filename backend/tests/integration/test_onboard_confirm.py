@@ -1,4 +1,4 @@
-"""Integration: onboard then confirm inserts the staged listings into the Cognee graph.
+"""Integration: onboard then confirm inserts staged listings into CockroachDB memory.
 
 Requires the live stack + OpenAI. Run via the integration gate; the fast gate skips it.
 """

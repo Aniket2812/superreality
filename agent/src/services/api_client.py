@@ -1,6 +1,6 @@
 """Async HTTP client for the realty backend (the memory + recall API).
 
-The agent never calls Cognee, cal.com, or Telnyx directly. It calls the backend, which
+The agent never calls CockroachDB, cal.com, or Telnyx directly. It calls the backend, which
 mediates every side effect. The optional transport makes the client testable with
 httpx.MockTransport (no network).
 """
@@ -112,7 +112,7 @@ class BackendApiClient:
         return await self._get(f"/api/v1/buyers/{quote(phone, safe='')}")
 
     async def get_buyer_profile(self, phone: str) -> dict[str, Any]:
-        """The FAST structured profile (a direct row read, not Cognee): {"found": bool,
+        """The fast structured CockroachDB profile: {"found": bool,
         "name", "budget", "area", "prefs_summary"}. Read at call start so a returning
         buyer is recognized without blocking the greeting on the 10-20s graph recall.
         """
@@ -127,7 +127,7 @@ class BackendApiClient:
         return await self._post("/api/v1/bookings", booking)
 
     async def forget_buyer(self, phone: str) -> dict[str, Any]:
-        """Forget a buyer on request (removes their Cognee dataset)."""
+        """Forget a buyer on request (removes their tenant-scoped memory)."""
         resp = await self._http().delete(
             f"{self._base_url}/api/v1/buyers/{quote(phone, safe='')}",
             headers=self._headers(),

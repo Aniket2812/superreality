@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One-command local bring-up for RealtyRecall.
 #
-# Creates .env on first run, builds and starts the whole stack (Postgres, Neo4j,
+# Creates .env on first run, builds and starts the whole stack (CockroachDB,
 # a bundled LiveKit server, backend, agent, frontend), waits for the backend to
 # report healthy, seeds demo data, and prints where to go.
 set -euo pipefail
@@ -42,7 +42,7 @@ RealtyRecall is up:
   Frontend       http://localhost:5173
   Seeded demo    http://localhost:5173/call/demo   (the seeded buyer line)
   API docs       http://localhost:8000/docs
-  Neo4j browser  http://localhost:7474   (neo4j / neo4jpassword)
+  CockroachDB UI http://localhost:8081
 
 Voice needs OPENAI_API_KEY in .env. After adding it, run `make up` again.
 Talk to the agent right in your terminal (no LiveKit needed):
