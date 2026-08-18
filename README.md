@@ -1,4 +1,4 @@
-# Super Realty
+# wondering
 
 An always-on OpenAI voice receptionist for real-estate agents. It qualifies buyers,
 finds grounded listings, books showings, and remembers each caller across conversations.

@@ -82,7 +82,7 @@ export default function Overview() {
       {/* 1. What it is */}
       <StorySection
         title={`${greeting()}${user?.firstName ? `, ${user.firstName}` : ""}`}
-        subtitle="Super Realty is an always-on AI receptionist for solo realtors. It answers every call, remembers every caller, and books showings."
+        subtitle="wondering is your always-on buyer concierge. It answers every call, remembers every person, and books showings while you keep moving."
       >
         {introWho && (
           <Card className="border-primary/30 bg-accent/30">

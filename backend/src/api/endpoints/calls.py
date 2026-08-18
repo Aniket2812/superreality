@@ -66,7 +66,7 @@ async def _maybe_send_lead_sms(payload: CallClose, tenant_id: str | None) -> Non
     if not to:
         return
     text = payload.summary or (
-        f"New Super Realty call ({payload.outcome or 'completed'})."
+        f"New wondering call ({payload.outcome or 'completed'})."
         + (f" Buyer: {payload.buyer_phone}." if payload.buyer_phone else "")
     )
     try:

@@ -1,5 +1,5 @@
 const SITE_URL = 'https://superrealty.mahimai.ca';
-const SITE_NAME = 'Super Realty';
+const SITE_NAME = 'wondering';
 const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.png`;
 const ORG_ID = `${SITE_URL}/#organization`;
 const SITE_ID = `${SITE_URL}/#website`;
@@ -12,9 +12,9 @@ export interface RouteMeta {
 
 const ROUTE_META = {
   '/': {
-    title: 'Super Realty: an AI receptionist that never misses a lead',
+    title: 'wondering — never leave a buyer waiting',
     description:
-      'Super Realty answers every call in your name, qualifies the buyer, books the showing, and remembers every caller. Built for solo real estate agents.',
+      'wondering answers every call in your name, qualifies the buyer, books the showing, and remembers every caller. Built for solo real estate agents.',
   },
 } as const;
 
@@ -80,9 +80,9 @@ function getServiceJsonLd(): object {
 
 const PRODUCT_LD = {
   '@type': 'Product',
-  name: 'Super Realty',
+  name: 'wondering',
   description: 'An always-on AI voice receptionist for solo real estate agents.',
-  brand: { '@type': 'Brand', name: 'Super Realty' },
+  brand: { '@type': 'Brand', name: 'wondering' },
   url: SITE_URL,
   offers: { '@type': 'Offer', url: `${SITE_URL}/#book` },
 };
@@ -90,7 +90,7 @@ const PRODUCT_LD = {
 const FAQ_LD = {
   '@type': 'FAQPage',
   mainEntity: [
-    ['Is it really free?', 'Yes. Super Realty is open source under the MIT license. Clone it, run it, and own it. There is no company to pay and no subscription.'],
+    ['Is it really free?', 'Yes. wondering is open source under the MIT license. Clone it, run it, and own it. There is no company to pay and no subscription.'],
     ['What does it cost to run?', 'Only your own API usage: an OpenAI key and a phone number if you want inbound calls. You pay those providers directly, nothing to us.'],
     ['Do I need to be technical?', 'Some comfort with Docker helps: it is one command, make up. If you would rather not touch a terminal, reach out and I can set it up for you.'],
     ["Is my data mine?", "Completely. It runs on your own infrastructure with your own keys. Your buyers and calls never touch anyone else's servers."],

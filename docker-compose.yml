@@ -1,4 +1,4 @@
-# One-command local Super Realty stack with CockroachDB as its memory layer.
+# One-command local wondering stack with CockroachDB as its memory layer.
 services:
   db:
     image: cockroachdb/cockroach:v25.4.0

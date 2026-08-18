@@ -2,6 +2,7 @@ import { Link, NavLink, Outlet } from "react-router-dom";
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
 import { ArrowRight } from "lucide-react";
 import { ThemeToggle } from "@/components/app/theme-toggle";
+import { Brand } from "@/components/app/brand";
 import { Button } from "@/components/ui/button";
 import { StartFreeButton } from "@/components/marketing/start-free-button";
 import { clerkEnabled } from "@/lib/clerk-config";
@@ -11,14 +12,14 @@ import { clerkEnabled } from "@/lib/clerk-config";
 export function AppShell() {
   return (
     <div className="min-h-svh bg-background">
-      <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4 sm:px-6">
-          <NavLink to="/" className="flex items-center gap-2">
-            <img src="/brand-mark.svg" alt="" className="h-6 w-6" />
-            <span className="text-[15px] font-semibold tracking-tight">
-              Super<span className="text-primary">Realty</span>
-            </span>
-          </NavLink>
+      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/75 backdrop-blur-xl">
+        <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center gap-5 px-5 sm:px-8">
+          <Brand />
+          <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex" aria-label="Main navigation">
+            <NavLink to="/#product" className="transition-colors hover:text-foreground">Product</NavLink>
+            <NavLink to="/#how" className="transition-colors hover:text-foreground">How it works</NavLink>
+            <NavLink to="/#pricing" className="transition-colors hover:text-foreground">Pricing</NavLink>
+          </nav>
           <div className="ml-auto flex items-center gap-2">
             {clerkEnabled ? (
               <>
@@ -44,7 +45,7 @@ export function AppShell() {
                 <Link to="/call/demo">Try voice demo</Link>
               </Button>
             )}
-            <ThemeToggle />
+            <span className="hidden sm:block"><ThemeToggle /></span>
           </div>
         </div>
       </header>

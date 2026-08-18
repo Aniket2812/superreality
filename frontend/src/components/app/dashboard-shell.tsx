@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/app/theme-toggle";
+import { Brand } from "@/components/app/brand";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +24,7 @@ const NAV = [
   { to: "/overview", label: "Overview", icon: LayoutDashboard },
   { to: "/listings", label: "Listings", icon: Building2 },
   { to: "/buyers", label: "Buyers", icon: Users },
-  { to: "/agents", label: "Super Agents", icon: Network },
+  { to: "/agents", label: "Agent team", icon: Network },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
@@ -41,12 +42,7 @@ function FirstRun() {
         <UserButton />
         <ThemeToggle />
       </div>
-      <div className="flex items-center gap-2">
-        <img src="/brand-mark.svg" alt="" className="h-7 w-7" />
-        <span className="text-lg font-semibold tracking-tight">
-          Super<span className="text-primary">Realty</span>
-        </span>
-      </div>
+      <Brand />
       <div className="max-w-md space-y-2 text-center">
         <h1 className="text-2xl font-semibold tracking-tight">
           Create your agency
@@ -78,18 +74,12 @@ function FirstRun() {
 function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col gap-1 bg-sidebar text-sidebar-foreground">
-      <NavLink
-        to="/overview"
-        onClick={onNavigate}
-        className="flex h-14 shrink-0 items-center gap-2 px-5"
-      >
-        <img src="/brand-mark.svg" alt="" className="h-6 w-6" />
-        <span className="text-[15px] font-semibold tracking-tight">
-          Super<span className="text-sidebar-primary">Realty</span>
-        </span>
-      </NavLink>
+      <div onClick={onNavigate} className="flex h-20 shrink-0 items-center px-5 [&_a]:text-sidebar-foreground">
+        <Brand />
+      </div>
 
-      <nav className="flex flex-1 flex-col gap-0.5 px-3 py-2">
+      <div className="px-5 pb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-sidebar-foreground/40">Workspace</div>
+      <nav className="flex flex-1 flex-col gap-1 px-3 py-2">
         {NAV.map((item) => (
           <NavLink
             key={item.to}
@@ -97,7 +87,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
             onClick={onNavigate}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                 isActive &&
                   "bg-sidebar-accent text-sidebar-accent-foreground",
               )
@@ -109,7 +99,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
         ))}
       </nav>
 
-      <div className="flex items-center justify-between gap-2 border-t border-sidebar-border px-4 py-3">
+      <div className="flex items-center justify-between gap-2 border-t border-sidebar-border px-4 py-4">
         <div className="flex min-w-0 items-center gap-2">
           <UserButton />
           <OrganizationSwitcher
@@ -154,7 +144,7 @@ export function DashboardShell() {
   if (!organization) return <FirstRun />;
 
   return (
-    <div className="min-h-svh bg-background lg:grid lg:grid-cols-[16rem_1fr]">
+    <div className="min-h-svh bg-background lg:grid lg:grid-cols-[17rem_1fr]">
       {/* Desktop sidebar */}
       <aside className="hidden border-r border-sidebar-border lg:block">
         <div className="sticky top-0 h-svh">
@@ -191,7 +181,7 @@ export function DashboardShell() {
       )}
 
       <div className="flex min-w-0 flex-col">
-        <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-sm sm:px-6">
+        <header className="sticky top-0 z-40 flex h-20 items-center gap-3 border-b border-border/70 bg-background/80 px-4 backdrop-blur-xl sm:px-8">
           <Button
             ref={menuButtonRef}
             variant="ghost"
@@ -202,11 +192,14 @@ export function DashboardShell() {
           >
             <Menu className="size-5" />
           </Button>
-          <h1 className="text-base font-semibold tracking-tight">
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">wondering workspace</div>
+            <h1 className="mt-0.5 text-lg font-semibold tracking-[-0.03em]">
             {pageTitle(pathname)}
-          </h1>
+            </h1>
+          </div>
         </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:py-8">
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-7 sm:px-8 lg:py-10">
           <Outlet />
         </main>
       </div>

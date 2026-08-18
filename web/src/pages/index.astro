@@ -2,240 +2,57 @@
 import Layout from "../layouts/Layout.astro";
 import Navigation from "../components/Navigation.astro";
 import Footer from "../components/Footer.astro";
-import CalEmbed from "../components/islands/CalEmbed.tsx";
 
 const GITHUB = "https://github.com/Aniket2812/superreality";
-
-const PAINS = [
-  "You are at a showing when the phone rings. The buyer does not leave a message; they call the next agent.",
-  "Leads go cold in minutes. Answer in five and you usually win; answer in an hour and the lead is gone.",
-  "The same three questions all day: is it still available, what is the price, can I see it this weekend.",
-  "There is only one of you. You cannot be on the phone and at the open house at the same time.",
-];
-
 const FEATURES = [
-  { title: "Answers in your name", body: "Picks up every call, day or night, in your voice. Qualifies budget, timeline, financing, and area, and only ever talks about homes you have connected." },
-  { title: "Onboards from one URL", body: "Paste your website and it reads your listings and your persona for you to review before it goes live." },
-  { title: "Remembers every buyer", body: "A returning caller is greeted by name and picks up where they left off. A memory graph that carries across calls, not a fresh transcript." },
-  { title: "Books the showing", body: "Checks your calendar and books, straight onto it, with the details texted to you. Idempotent, so a retry never double-books." },
-  { title: "Hands you the lead", body: "When the call ends it texts the buyer and outcome to your phone, so you follow up while the lead is still warm." },
-  { title: "Lives where your buyers are", body: "A one-line embed puts a Talk to us button on your site, and a real phone number can ring the same assistant." },
+  ["01", "Answers before they hang up", "A natural voice picks up in your name, any hour of the day, while you stay focused on the client in front of you."],
+  ["02", "Understands what they want", "Budget, area, timing, financing. wondering qualifies each buyer and keeps the useful details connected."],
+  ["03", "Gets the showing booked", "It matches buyers with your real listings, checks availability, and puts the appointment on your calendar."],
 ];
-
-const BUILT_ON = ["CockroachDB", "LiveKit", "OpenAI", "FastAPI", "React"];
-
-const STEPS = [
-  { n: "1", title: "Clone and run it", body: "One command brings the whole stack up: the agent, the memory graph, the backend, and the dashboard." },
-  { n: "2", title: "Connect your listings", body: "Paste your website URL. It reads your homes and your voice, and you review before it goes live." },
-  { n: "3", title: "Share your line", body: "Put it on your site or forward your number. It answers every call, remembers every buyer, and books showings." },
-];
-
-const FAQS = [
-  { q: "Is it really free?", a: "Yes. Super Realty is open source under the MIT license. Clone it, run it, and own it. There is no company to pay and no subscription." },
-  { q: "What does it cost to run?", a: "Only your own API usage: an OpenAI key and a phone number if you want inbound calls. You pay those providers directly, nothing to us." },
-  { q: "Do I need to be technical?", a: "Some comfort with Docker helps: it is one command, make up. If you would rather not touch a terminal, reach out and I can set it up for you." },
-  { q: "Is my data mine?", a: "Completely. It runs on your own infrastructure with your own keys. Your buyers and calls never touch anyone else's servers." },
-  { q: "Does it sound like a robot?", a: "No. It answers in a natural voice, in your name, and only ever describes homes you have connected. Never a generic script." },
-  { q: "Does it work after hours?", a: "That is the whole point. It answers first ring, day or night, weekends included, when most calls actually come in." },
+const FAQ = [
+  ["Is wondering really open source?", "Yes. Clone it, run it, change it, and own it under the MIT license."],
+  ["Does it remember returning buyers?", "Yes. Preferences and conversation context persist across calls, so a buyer never starts from zero."],
+  ["Can it invent listings?", "No. It is grounded in the homes you connect and can only recommend from that reviewed catalog."],
+  ["Can buyers call after hours?", "That is exactly what it is for. The line answers day, night, and weekends without sending buyers to voicemail."],
 ];
 ---
 <Layout>
   <Navigation />
-
-  <main>
-    <!-- Hero -->
-    <section class="relative overflow-hidden" style="background-image: radial-gradient(60% 60% at 50% 0%, rgba(56,182,203,0.16), transparent 70%);">
-      <div class="mx-auto grid max-w-6xl items-center gap-10 px-6 pt-20 pb-16 lg:grid-cols-2">
+  <main class="overflow-hidden">
+    <section class="page-grid border-b border-line">
+      <div class="mx-auto grid min-h-[calc(100svh-4.5rem)] max-w-7xl items-center gap-16 px-5 py-20 sm:px-8 lg:grid-cols-[.9fr_1.1fr]">
         <div>
-          <span class="badge"><span class="shiny-text">Free and open source</span></span>
-          <h1 class="mt-6 text-4xl font-semibold tracking-tight sm:text-5xl">
-            Never miss another <span class="bg-gradient-to-r from-[#15788a] to-[#38b6cb] bg-clip-text text-transparent">real estate lead</span>.
-          </h1>
-          <p class="mt-5 max-w-xl text-lg text-gray-600">
-            Super Realty is an open-source AI receptionist for solo real estate agents. It answers every call in your name, qualifies the buyer, books the showing, and remembers every caller across calls. Run your own in one command.
-          </p>
-          <div class="mt-8 flex flex-wrap items-center gap-3">
-            <a href={GITHUB} data-cta="get_it_free" class="btn-primary btn-shine">Get it free</a>
-            <a href="#how" class="btn-secondary">See how it works</a>
-          </div>
-          <p class="mt-4 text-sm text-gray-500">Open source, MIT. Your keys, your data, your infrastructure. No subscription.</p>
+          <p class="eyebrow">The open-source buyer concierge</p>
+          <h1 class="display mt-7 max-w-[9ch]">Never leave a buyer wondering.</h1>
+          <p class="mt-8 max-w-lg text-lg leading-8 text-black/55">An AI voice assistant that answers in your name, remembers every buyer, and turns interest into a booked showing.</p>
+          <div class="mt-9 flex flex-wrap gap-3"><a href={GITHUB} class="btn-primary">Get wondering free →</a><a href="#how" class="btn-secondary">See how it works</a></div>
+          <div class="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-xs font-semibold text-black/45"><span>MIT licensed</span><span>Your keys</span><span>Your infrastructure</span></div>
         </div>
         <div class="relative">
-          <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl shadow-cyan-900/10">
-            <div class="flex items-center gap-1.5 border-b border-gray-100 bg-gray-50 px-4 py-2.5">
-              <span class="h-2.5 w-2.5 rounded-full bg-red-400"></span>
-              <span class="h-2.5 w-2.5 rounded-full bg-yellow-400"></span>
-              <span class="h-2.5 w-2.5 rounded-full bg-green-400"></span>
-              <span class="ml-3 truncate font-mono text-xs text-gray-400">localhost:5173/overview</span>
+          <div class="absolute -inset-14 -z-10 rounded-full bg-accent/10 blur-3xl"></div>
+          <div class="overflow-hidden rounded-[1.8rem] border border-white/10 bg-ink text-white shadow-[0_45px_100px_-40px_rgba(31,23,18,.75)]">
+            <div class="flex items-center justify-between border-b border-white/10 px-5 py-4"><div class="flex items-center gap-2.5 text-sm font-bold"><span class="grid size-7 place-items-center rounded-[9px] bg-accent text-xs">w</span>wondering</div><span class="rounded-full bg-white/10 px-3 py-1.5 text-[11px] text-white/60">● Live</span></div>
+            <div class="grid gap-3 p-4 sm:grid-cols-[1.2fr_.8fr] sm:p-5">
+              <div class="rounded-[1.25rem] bg-white/[.06] p-5"><p class="text-[10px] font-bold uppercase tracking-[.18em] text-white/35">Right now</p><div class="mt-8 flex items-end justify-between"><div><p class="text-sm text-white/65">Maya is speaking with</p><p class="mt-1 text-2xl font-bold tracking-[-.04em]">Jordan Lee</p></div><span class="grid size-12 place-items-center rounded-full bg-accent">◉</span></div><div class="mt-8 flex h-12 items-center gap-1" aria-hidden="true">{[14,28,42,21,36,48,24,32,16,43,28,37,18,31,45,23].map((h) => <span class="voice-bar" style={`height:${h}px`}></span>)}</div><div class="mt-5 flex flex-wrap gap-2 text-xs text-white/55"><span class="rounded-full bg-white/10 px-3 py-1.5">3+ beds</span><span class="rounded-full bg-white/10 px-3 py-1.5">West end</span><span class="rounded-full bg-white/10 px-3 py-1.5">Under $700k</span></div></div>
+              <div class="flex flex-col gap-3"><div class="flex-1 rounded-[1.25rem] bg-accent p-5"><p class="text-xs text-white/70">Coverage</p><p class="mt-12 text-4xl font-bold tracking-[-.06em]">24/7</p><p class="mt-1 text-xs text-white/70">Every call, covered.</p></div><div class="rounded-[1.25rem] bg-paper p-5 text-ink"><p class="text-xs font-bold">Showing booked ✓</p><p class="mt-8 text-sm font-semibold">22 Garden Lane</p><p class="mt-1 text-xs text-black/45">Tomorrow · 4:30 PM</p></div></div>
             </div>
-            <img src="/screenshots/overview.png" width="1440" height="900" loading="eager" decoding="async" alt="The Super Realty dashboard: the assistant's persona, buyer call link, and CockroachDB memory graph." class="w-full" />
-          </div>
-          <p class="mt-3 text-center text-xs text-gray-500">The real dashboard, onboarded from one website URL. Powered by CockroachDB vector memory.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- The cost of a missed call -->
-    <section class="border-y border-gray-200 bg-gray-50">
-      <div class="mx-auto max-w-6xl px-6 py-16">
-        <h2 class="max-w-3xl text-2xl font-semibold tracking-tight sm:text-3xl">Every missed call is a missed commission.</h2>
-        <p class="mt-4 max-w-2xl text-gray-600">
-          A human answering service runs $150 to $700 a month and still forgets the caller the moment they hang up. Super Realty answers every call, remembers everyone across calls, and is free to run yourself.
-        </p>
-        <ul class="mt-8 grid gap-3 sm:grid-cols-2">
-          {PAINS.map((p) => (
-            <li class="card px-4 py-3 text-sm text-gray-600">{p}</li>
-          ))}
-        </ul>
-      </div>
-    </section>
-
-    <!-- What it does -->
-    <section class="mx-auto max-w-6xl px-6 py-16">
-      <h2 class="text-2xl font-semibold tracking-tight sm:text-3xl">A digital you that never lets a lead slip.</h2>
-      <div class="mt-10 grid gap-4 md:grid-cols-3">
-        {FEATURES.map((f, i) => (
-          <div class="card card-hover p-5" data-reveal style={`--reveal-delay: ${i * 0.06}s`}>
-            <h3 class="text-base font-semibold tracking-tight text-ink">{f.title}</h3>
-            <p class="mt-2 text-sm text-gray-600">{f.body}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-
-    <!-- Product showcase -->
-    <section class="border-t border-gray-200 bg-gray-50">
-      <div class="mx-auto max-w-6xl px-6 py-16">
-        <h2 class="text-2xl font-semibold tracking-tight sm:text-3xl">See the whole thing, running.</h2>
-        <p class="mt-3 max-w-2xl text-gray-600">Not a mockup. This is the actual dashboard after pasting one website URL, with real listings and a real buyer line.</p>
-        <div class="mt-10 grid gap-6 lg:grid-cols-2">
-          <figure class="card overflow-hidden p-0" data-reveal>
-            <img src="/screenshots/listings.png" width="1440" height="900" loading="lazy" decoding="async" alt="The Super Realty listings dashboard: a grid of connected homes with photos, prices, and details." class="w-full border-b border-gray-100" />
-            <figcaption class="px-5 py-4">
-              <h3 class="text-base font-semibold text-ink">Your listings, connected</h3>
-              <p class="mt-1 text-sm text-gray-600">Every home the assistant can talk about, read straight from your site. It only ever recommends these, and never invents a listing.</p>
-            </figcaption>
-          </figure>
-          <figure class="card overflow-hidden p-0" data-reveal style="--reveal-delay: 0.08s">
-            <img src="/screenshots/call.png" width="1440" height="900" loading="lazy" decoding="async" alt="The Super Realty buyer call screen, where a caller talks to the assistant and is remembered next time." class="w-full border-b border-gray-100" />
-            <figcaption class="px-5 py-4">
-              <h3 class="text-base font-semibold text-ink">A buyer line that remembers</h3>
-              <p class="mt-1 text-sm text-gray-600">Share one link or forward your number. Buyers reach an assistant scoped to your homes, greeted by name the next time they call.</p>
-            </figcaption>
-          </figure>
-        </div>
-      </div>
-    </section>
-
-    <!-- Super Agents: the multi-agent differentiator -->
-    <section class="mx-auto max-w-6xl px-6 py-16">
-      <div class="grid items-center gap-10 lg:grid-cols-2">
-        <div>
-          <span class="badge"><span class="shiny-text">Multi-agent</span></span>
-          <h2 class="mt-5 text-2xl font-semibold tracking-tight sm:text-3xl">One call, a team of specialists.</h2>
-          <p class="mt-4 max-w-xl text-gray-600">
-            Behind every call is not one bot but three specialists that hand off in real time: a Concierge greets and routes, a Property agent searches and shows your homes, and a Scheduling agent checks your calendar and books. You watch the handoff happen live in your dashboard.
-          </p>
-          <ul class="mt-6 space-y-2 text-sm text-gray-600">
-            <li class="flex gap-2"><span class="text-accent">1.</span> Concierge answers first and routes the caller.</li>
-            <li class="flex gap-2"><span class="text-accent">2.</span> Property searches only the homes you have connected.</li>
-            <li class="flex gap-2"><span class="text-accent">3.</span> Scheduling books straight onto your calendar.</li>
-          </ul>
-        </div>
-        <div class="relative" data-reveal>
-          <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl shadow-cyan-900/10">
-            <div class="flex items-center gap-1.5 border-b border-gray-100 bg-gray-50 px-4 py-2.5">
-              <span class="h-2.5 w-2.5 rounded-full bg-red-400"></span>
-              <span class="h-2.5 w-2.5 rounded-full bg-yellow-400"></span>
-              <span class="h-2.5 w-2.5 rounded-full bg-green-400"></span>
-              <span class="ml-3 truncate font-mono text-xs text-gray-400">localhost:5173/agents</span>
-            </div>
-            <img src="/screenshots/agents.png" width="1440" height="680" loading="lazy" decoding="async" alt="The Super Realty Super Agents dashboard: Concierge, Property, and Scheduling specialists handing off one live call." class="w-full" />
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Built on open source -->
-    <section class="border-y border-gray-200 bg-gray-50">
-      <div class="mx-auto max-w-6xl px-6 py-12 text-center">
-        <p class="text-sm font-medium text-gray-500">Built on the best open source, so you own the whole stack.</p>
-        <ul class="mt-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-lg font-semibold text-ink">
-          {BUILT_ON.map((b) => (<li>{b}</li>))}
-        </ul>
-      </div>
+    <section id="product" class="mx-auto max-w-7xl px-5 py-24 sm:px-8 lg:py-32">
+      <div class="grid gap-10 lg:grid-cols-2"><div><p class="eyebrow">One thoughtful conversation</p><h2 class="section-title mt-5 max-w-[11ch]">From first ring to front door.</h2></div><p class="max-w-xl self-end text-lg leading-8 text-black/55">wondering gives every inquiry a personal, immediate response—even while you are driving, showing a home, or finally off the clock.</p></div>
+      <div class="mt-16 grid border-y border-line lg:grid-cols-3">{FEATURES.map(([n,title,body]) => <article class="border-b border-line py-9 lg:border-b-0 lg:border-r lg:px-8 lg:first:pl-0 lg:last:border-r-0"><div class="flex justify-between text-xs"><span class="text-accent">●</span><span class="text-black/40">{n}</span></div><h3 class="mt-16 max-w-[14ch] text-2xl font-bold tracking-[-.04em]">{title}</h3><p class="mt-4 max-w-sm text-sm leading-6 text-black/55">{body}</p></article>)}</div>
     </section>
 
-    <!-- How it works (dark band) -->
-    <section id="how" class="bg-ink text-white">
-      <div class="mx-auto max-w-6xl px-6 py-16">
-        <h2 class="text-2xl font-semibold tracking-tight sm:text-3xl">Live in one command.</h2>
-        <div class="mt-10 grid gap-6 md:grid-cols-3">
-          {STEPS.map((s) => (
-            <div>
-              <div class="text-sm font-semibold text-accent">{s.n}</div>
-              <h3 class="mt-2 text-lg font-semibold">{s.title}</h3>
-              <p class="mt-2 text-sm text-white/70">{s.body}</p>
-            </div>
-          ))}
-        </div>
-        <div class="mt-8">
-          <a href={GITHUB} data-cta="get_it_free" class="inline-flex rounded-lg bg-white px-4 py-2 text-sm font-semibold text-ink hover:bg-gray-100">Get it on GitHub</a>
-        </div>
-      </div>
-    </section>
+    <section id="how" class="bg-ink text-white"><div class="mx-auto grid max-w-7xl gap-16 px-5 py-24 sm:px-8 lg:grid-cols-[.8fr_1.2fr] lg:py-32"><div><p class="eyebrow">Designed to remember</p><h2 class="section-title mt-5">Every call makes the next one better.</h2></div><div class="grid gap-px overflow-hidden rounded-[1.75rem] bg-white/10 sm:grid-cols-2">{[["Connect","Bring your listings in from one URL or file."],["Personalize","Set your name, market, tone, and calendar."],["Share","Use a phone line, call link, or website embed."],["Remember","Keep every buyer's context across conversations."]].map(([t,b],i)=><div class="bg-ink p-8"><span class="text-xs text-accent">0{i+1}</span><h3 class="mt-10 text-xl font-bold">{t}</h3><p class="mt-3 text-sm leading-6 text-white/50">{b}</p></div>)}</div></div></section>
 
-    <!-- Free -->
-    <section class="mx-auto max-w-3xl px-6 py-20 text-center">
-      <h2 class="text-3xl font-semibold tracking-tight">Free. Forever. Open source.</h2>
-      <p class="mx-auto mt-3 max-w-xl text-gray-600">
-        No seats, no per-call fees, no subscription. Clone it, deploy it, and it is yours under the MIT license. You only ever pay your own API providers.
-      </p>
-      <div class="card mx-auto mt-8 max-w-md p-8">
-        <p class="text-5xl font-semibold text-ink">$0</p>
-        <p class="mt-1 text-sm text-gray-500">to run your own, forever</p>
-        <a href={GITHUB} data-cta="get_it_free" class="btn-primary btn-shine mt-6 w-full justify-center">Get it free</a>
-        <p class="mt-4 font-mono text-xs text-gray-500">git clone and make up</p>
-      </div>
-    </section>
+    <section id="open" class="mx-auto max-w-7xl px-5 py-24 sm:px-8 lg:py-32"><div class="rounded-[2rem] bg-accent px-7 py-16 text-white sm:px-14 lg:px-20"><p class="text-xs font-bold uppercase tracking-[.18em] text-white/70">Open source, all the way down</p><h2 class="mt-7 max-w-[15ch] text-4xl font-bold leading-[1.02] tracking-[-.055em] sm:text-6xl">Your data. Your stack. Your way of working.</h2><p class="mt-6 max-w-2xl leading-7 text-white/75">Built with CockroachDB, LiveKit, OpenAI, FastAPI, and React. Run it on your own infrastructure and shape it around your business.</p><a href={GITHUB} class="btn-secondary mt-9 !border-white/30 !bg-white !text-ink">View on GitHub →</a></div></section>
 
-    <!-- FAQ -->
-    <section class="border-t border-gray-200 bg-gray-50">
-      <div class="mx-auto max-w-3xl px-6 py-16">
-        <h2 class="text-2xl font-semibold tracking-tight sm:text-3xl">Questions agents ask</h2>
-        <div class="mt-8 flex flex-col gap-2">
-          {FAQS.map((f) => (
-            <details class="group card px-4 py-3">
-              <summary class="flex cursor-pointer list-none items-center justify-between text-sm font-medium text-ink">
-                {f.q}
-                <span class="text-gray-400 transition-transform group-open:rotate-45">+</span>
-              </summary>
-              <p class="mt-2 text-sm text-gray-600">{f.a}</p>
-            </details>
-          ))}
-        </div>
-      </div>
-    </section>
+    <section class="mx-auto max-w-4xl px-5 py-24 sm:px-8"><div class="text-center"><p class="eyebrow">The useful details</p><h2 class="section-title mt-5">Questions, answered.</h2></div><div class="mt-12 border-t border-line">{FAQ.map(([q,a])=><details class="group border-b border-line py-5"><summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-bold">{q}<span class="grid size-8 place-items-center rounded-full border border-line text-xl font-normal transition-transform group-open:rotate-45">+</span></summary><p class="max-w-2xl pt-3 text-sm leading-6 text-black/55">{a}</p></details>)}</div></section>
 
-    <!-- Connect (the only ask) -->
-    <section id="book" class="mx-auto max-w-4xl px-6 py-20 text-center">
-      <h2 class="text-3xl font-semibold tracking-tight">Want it set up for you?</h2>
-      <p class="mx-auto mt-3 max-w-xl text-gray-600">Book a 30-minute call, or email <a class="text-accent hover:underline" href="mailto:contact@mahimai.ca">contact@mahimai.ca</a>.</p>
-      <div class="mt-8">
-        <CalEmbed client:visible />
-      </div>
-    </section>
+    <section class="px-5 pb-5 sm:px-8"><div class="mx-auto flex max-w-7xl flex-col items-start justify-between gap-10 rounded-[2rem] bg-ink px-7 py-16 text-white sm:px-14 lg:flex-row lg:items-end lg:px-20"><div><p class="eyebrow">Your next lead is about to call</p><h2 class="section-title mt-5 max-w-[13ch]">Be there without picking up.</h2></div><a href={GITHUB} class="btn-primary shrink-0">Get wondering free →</a></div></section>
   </main>
-
   <Footer />
-
-  <script>
-    const track = (name: string) => (window as any).posthog?.capture?.(name);
-    document.querySelectorAll('a[data-cta="get_it_free"]').forEach((el) => {
-      el.addEventListener("click", () => track("get_it_free_click"));
-    });
-    document.querySelectorAll('a[href^="mailto:"]').forEach((el) => {
-      el.addEventListener("click", () => track("email_click"));
-    });
-  </script>
 </Layout>

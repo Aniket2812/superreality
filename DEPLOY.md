@@ -1,4 +1,4 @@
-# Deploying Super Realty
+# Deploying wondering
 
 The supported production target is AWS with CockroachDB Cloud as the persistent
 agent-memory layer. The deployment uses two hackathon products directly:

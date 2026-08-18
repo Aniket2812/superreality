@@ -23,7 +23,7 @@ export function Pain() {
         ))}
       </ul>
       <p className="mt-8 max-w-2xl text-base text-foreground">
-        Super Realty takes the receptionist off your plate, so you can set a
+        wondering takes the receptionist off your plate, so you can set a
         boundary without losing the lead.
       </p>
     </section>

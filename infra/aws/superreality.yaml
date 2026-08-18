@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Super Realty hackathon application host on AWS
+Description: wondering application host on AWS
 
 Parameters:
   InstanceType:

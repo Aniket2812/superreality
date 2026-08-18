@@ -2,7 +2,7 @@
 
 ## Memory is the product
 
-A returning buyer should not start over. Super Realty turns conversations into durable,
+A returning buyer should not start over. wondering turns conversations into durable,
 actionable memory and uses that memory on the next live call.
 
 ```mermaid

@@ -1,6 +1,6 @@
-# Super Realty landing site
+# wondering landing site
 
-Astro site (Cloudflare) for superrealty.mahimai.ca. Brand-coherent with mahimai.ca.
+Astro site (Cloudflare) for the wondering product. Brand-coherent with the main product app.
 
 ## Develop
 
@@ -29,5 +29,5 @@ pnpm deploy               # wrangler deploy (requires wrangler login)
 ### Placeholders
 
 `public/og-image.png` and the favicons under `public/` are placeholder assets
-copied from mahimai.ca. Replace them with branded Super Realty art before the
+copied from mahimai.ca. Replace them with branded wondering art before the
 public launch.

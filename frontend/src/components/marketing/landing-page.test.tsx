@@ -20,33 +20,26 @@ function renderPage() {
 
 test("hero headline renders", () => {
   renderPage();
-  expect(screen.getByText(/Never forget a buyer\./i)).toBeInTheDocument();
+  expect(screen.getByText(/Never leave a buyer wondering\./i)).toBeInTheDocument();
 });
 
-test("all three pricing tiers render", () => {
+test("the simplified pricing offer renders", () => {
   renderPage();
-  expect(screen.getByText("Starter")).toBeInTheDocument();
-  expect(screen.getByText("$297")).toBeInTheDocument();
-  expect(screen.getByText("Pro")).toBeInTheDocument();
+  expect(screen.getByText("wondering pro")).toBeInTheDocument();
   expect(screen.getByText("$597")).toBeInTheDocument();
-  expect(screen.getByText("Brokerage")).toBeInTheDocument();
-  expect(screen.getAllByText("Custom").length).toBeGreaterThan(0);
 });
 
-test("comparison differentiator row renders", () => {
+test("buyer memory story renders", () => {
   renderPage();
-  expect(
-    screen.getByText(/Remembers buyers \+ proactive match/i),
-  ).toBeInTheDocument();
+  expect(screen.getByText(/Every call makes the next one better/i)).toBeInTheDocument();
+  expect(screen.getByText(/returning buyers never have to start over/i)).toBeInTheDocument();
 });
 
 test("primary and secondary CTAs render", () => {
   renderPage();
-  // Multiple Start free buttons exist (hero, pricing x3, final); at least one.
-  expect(screen.getAllByRole("button", { name: "Start free" }).length).toBeGreaterThan(0);
-  // Secondary try-live links point at /call.
+  expect(screen.getByRole("button", { name: "Put it to work" })).toBeInTheDocument();
   const liveLinks = screen
     .getAllByRole("link")
-    .filter((a) => a.getAttribute("href") === "/call");
+    .filter((a) => a.getAttribute("href") === "/call/demo");
   expect(liveLinks.length).toBeGreaterThan(0);
 });

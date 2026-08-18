@@ -30,7 +30,7 @@ test("Overview renders the three narrative sections", async () => {
       <Overview />
     </MemoryRouter>,
   );
-  expect(await screen.findByText(/always-on AI receptionist/i)).toBeInTheDocument();
+  expect(await screen.findByText(/always-on buyer concierge/i)).toBeInTheDocument();
   expect(screen.getByText("How it remembers")).toBeInTheDocument();
   expect(screen.getByText("memory-section")).toBeInTheDocument();
   expect(screen.getByText(/What your assistant has done/i)).toBeInTheDocument();

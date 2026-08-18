@@ -1,5 +1,5 @@
 /*
- * Super Realty embeddable call widget.
+ * wondering embeddable call widget.
  *
  * A realtor drops this on their own site:
  *   <script src="https://<realtyrecall-host>/embed.js" data-org="org_xxx" async></script>
@@ -17,7 +17,7 @@
 
   var org = script.getAttribute("data-org");
   if (!org) {
-    console.error("[Super Realty] embed.js: missing data-org attribute");
+    console.error("[wondering] embed.js: missing data-org attribute");
     return;
   }
   var label = script.getAttribute("data-label") || "Talk to us";
