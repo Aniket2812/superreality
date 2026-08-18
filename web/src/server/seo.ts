@@ -12,9 +12,9 @@ export interface RouteMeta {
 
 const ROUTE_META = {
   '/': {
-    title: 'wondering — never leave a buyer waiting',
+    title: 'wondering — agentic memory built with CockroachDB and AWS',
     description:
-      'wondering answers every call in your name, qualifies the buyer, books the showing, and remembers every caller. Built for solo real estate agents.',
+      'A CockroachDB × AWS Hackathon voice agent that remembers buyers, retrieves relevant homes with distributed vector search, and acts on persistent context.',
   },
 } as const;
 
@@ -24,7 +24,7 @@ function getOrganizationJsonLd(): object {
     '@id': ORG_ID,
     name: SITE_NAME,
     url: SITE_URL,
-    description: 'AI receptionist for solo real estate agents: answers every call, qualifies buyers, books showings.',
+    description: 'An agentic-memory voice application built with CockroachDB, AWS, and OpenAI.',
     sameAs: [
       'https://www.linkedin.com/in/mahimairaja',
       'https://github.com/mahimairaja',
@@ -54,7 +54,7 @@ function getServiceJsonLd(): object {
     '@type': 'ProfessionalService',
     name: SITE_NAME,
     url: SITE_URL,
-    description: 'AI receptionist that answers every buyer call, qualifies leads, and books showings for solo real estate agents.',
+    description: 'AI voice agent that uses CockroachDB as persistent memory to recall buyer context and act on it.',
     provider: {
       '@type': 'Person',
       name: 'Mahimai Raja J',
@@ -81,21 +81,18 @@ function getServiceJsonLd(): object {
 const PRODUCT_LD = {
   '@type': 'Product',
   name: 'wondering',
-  description: 'An always-on AI voice receptionist for solo real estate agents.',
+  description: 'An AI voice agent with CockroachDB-backed persistent and semantic memory.',
   brand: { '@type': 'Brand', name: 'wondering' },
   url: SITE_URL,
-  offers: { '@type': 'Offer', url: `${SITE_URL}/#book` },
 };
 
 const FAQ_LD = {
   '@type': 'FAQPage',
   mainEntity: [
-    ['Is it really free?', 'Yes. wondering is open source under the MIT license. Clone it, run it, and own it. There is no company to pay and no subscription.'],
-    ['What does it cost to run?', 'Only your own API usage: an OpenAI key and a phone number if you want inbound calls. You pay those providers directly, nothing to us.'],
-    ['Do I need to be technical?', 'Some comfort with Docker helps: it is one command, make up. If you would rather not touch a terminal, reach out and I can set it up for you.'],
-    ["Is my data mine?", "Completely. It runs on your own infrastructure with your own keys. Your buyers and calls never touch anyone else's servers."],
-    ['Does it sound like a robot?', 'No. It answers in a natural voice, in your name, and only ever describes homes you have connected. Never a generic script.'],
-    ['Does it work after hours?', 'That is the whole point. It answers first ring, day or night, weekends included, when most calls actually come in.'],
+    ['Why CockroachDB?', 'It keeps operational state and semantic vector memory in one resilient source of truth.'],
+    ['Which challenge tools are used?', 'CockroachDB Distributed Vector Indexing and the agent-ready ccloud CLI.'],
+    ['What does the agent remember?', 'Buyer identity, preferences, previous conversations, listing matches, and showing state.'],
+    ['Where does it run?', 'The application runs on AWS in ap-south-1 and connects to CockroachDB Cloud.'],
   ].map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
 };
 

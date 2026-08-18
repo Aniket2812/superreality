@@ -4,55 +4,62 @@ import Navigation from "../components/Navigation.astro";
 import Footer from "../components/Footer.astro";
 
 const GITHUB = "https://github.com/Aniket2812/superreality";
+const APP = "https://13.204.9.91.sslip.io/call/demo";
 const FEATURES = [
-  ["01", "Answers before they hang up", "A natural voice picks up in your name, any hour of the day, while you stay focused on the client in front of you."],
-  ["02", "Understands what they want", "Budget, area, timing, financing. wondering qualifies each buyer and keeps the useful details connected."],
-  ["03", "Gets the showing booked", "It matches buyers with your real listings, checks availability, and puts the appointment on your calendar."],
+  ["01", "Durable by default", "Buyer identity, preferences, calls, listings, and showings live in CockroachDB as operational memory—not inside a temporary model context."],
+  ["02", "Relevant at recall", "Distributed vector indexes find semantically relevant homes while structured filters keep every recommendation grounded and tenant-safe."],
+  ["03", "Useful in action", "The voice agent turns recalled context into a natural follow-up, a better match, or a booked showing on the next call."],
+];
+const FLOW = [
+  ["Listen", "OpenAI runs the live voice conversation and extracts buyer intent."],
+  ["Embed", "Preferences and listing descriptions become searchable vectors."],
+  ["Remember", "CockroachDB stores semantic and transactional memory together."],
+  ["Act", "The agent recalls the right context and completes the next useful step."],
 ];
 const FAQ = [
-  ["Is wondering really open source?", "Yes. Clone it, run it, change it, and own it under the MIT license."],
-  ["Does it remember returning buyers?", "Yes. Preferences and conversation context persist across calls, so a buyer never starts from zero."],
-  ["Can it invent listings?", "No. It is grounded in the homes you connect and can only recommend from that reviewed catalog."],
-  ["Can buyers call after hours?", "That is exactly what it is for. The line answers day, night, and weekends without sending buyers to voicemail."],
+  ["Why CockroachDB?", "The agent needs transactions and semantic recall to agree. CockroachDB keeps buyer state, conversations, listings, bookings, and vectors in one resilient source of truth."],
+  ["Which challenge tools are used?", "CockroachDB Distributed Vector Indexing powers semantic memory, and the agent-ready ccloud CLI makes cluster operations repeatable and auditable."],
+  ["What does the agent remember?", "Buyer identity, preferences, previous conversations, relevant listing matches, and showing state—scoped to the correct workspace."],
+  ["Where does it run?", "The full voice-agent application is deployed on AWS in ap-south-1 and connects securely to CockroachDB Cloud."],
 ];
 ---
 <Layout>
   <Navigation />
   <main class="overflow-hidden">
     <section class="page-grid border-b border-line">
-      <div class="mx-auto grid min-h-[calc(100svh-4.5rem)] max-w-7xl items-center gap-16 px-5 py-20 sm:px-8 lg:grid-cols-[.9fr_1.1fr]">
+      <div class="mx-auto grid min-h-[calc(100svh-7rem)] max-w-7xl items-center gap-16 px-5 py-20 sm:px-8 lg:grid-cols-[.9fr_1.1fr]">
         <div>
-          <p class="eyebrow">The open-source buyer concierge</p>
-          <h1 class="display mt-7 max-w-[9ch]">Never leave a buyer wondering.</h1>
-          <p class="mt-8 max-w-lg text-lg leading-8 text-black/55">An AI voice assistant that answers in your name, remembers every buyer, and turns interest into a booked showing.</p>
-          <div class="mt-9 flex flex-wrap gap-3"><a href={GITHUB} class="btn-primary">Get wondering free →</a><a href="#how" class="btn-secondary">See how it works</a></div>
-          <div class="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-xs font-semibold text-black/45"><span>MIT licensed</span><span>Your keys</span><span>Your infrastructure</span></div>
+          <p class="eyebrow">Agentic memory for real-world conversations</p>
+          <h1 class="display mt-7 max-w-[11ch]">An agent that remembers—and acts.</h1>
+          <p class="mt-8 max-w-xl text-lg leading-8 text-black/55">wondering is an AI voice agent that remembers every buyer, retrieves relevant homes with CockroachDB vector search, and turns context into action—all deployed on AWS.</p>
+          <div class="mt-9 flex flex-wrap gap-3"><a href={APP} class="btn-primary">Try the live agent →</a><a href={GITHUB} class="btn-secondary">Explore the code</a></div>
+          <div class="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-xs font-semibold text-black/45"><span>CockroachDB vector memory</span><span>Deployed on AWS</span><span>OpenAI voice agent</span></div>
         </div>
         <div class="relative">
           <div class="absolute -inset-14 -z-10 rounded-full bg-accent/10 blur-3xl"></div>
           <div class="overflow-hidden rounded-[1.8rem] border border-white/10 bg-ink text-white shadow-[0_45px_100px_-40px_rgba(31,23,18,.75)]">
-            <div class="flex items-center justify-between border-b border-white/10 px-5 py-4"><div class="flex items-center gap-2.5 text-sm font-bold"><span class="grid size-7 place-items-center rounded-[9px] bg-accent text-xs">w</span>wondering</div><span class="rounded-full bg-white/10 px-3 py-1.5 text-[11px] text-white/60">● Live</span></div>
+            <div class="flex items-center justify-between border-b border-white/10 px-5 py-4"><div class="flex items-center gap-2.5 text-sm font-bold"><span class="grid size-7 place-items-center rounded-[9px] bg-accent text-xs">w</span>wondering memory agent</div><span class="rounded-full bg-white/10 px-3 py-1.5 text-[11px] text-white/60">● Live on AWS</span></div>
             <div class="grid gap-3 p-4 sm:grid-cols-[1.2fr_.8fr] sm:p-5">
-              <div class="rounded-[1.25rem] bg-white/[.06] p-5"><p class="text-[10px] font-bold uppercase tracking-[.18em] text-white/35">Right now</p><div class="mt-8 flex items-end justify-between"><div><p class="text-sm text-white/65">Maya is speaking with</p><p class="mt-1 text-2xl font-bold tracking-[-.04em]">Jordan Lee</p></div><span class="grid size-12 place-items-center rounded-full bg-accent">◉</span></div><div class="mt-8 flex h-12 items-center gap-1" aria-hidden="true">{[14,28,42,21,36,48,24,32,16,43,28,37,18,31,45,23].map((h) => <span class="voice-bar" style={`height:${h}px`}></span>)}</div><div class="mt-5 flex flex-wrap gap-2 text-xs text-white/55"><span class="rounded-full bg-white/10 px-3 py-1.5">3+ beds</span><span class="rounded-full bg-white/10 px-3 py-1.5">West end</span><span class="rounded-full bg-white/10 px-3 py-1.5">Under $700k</span></div></div>
-              <div class="flex flex-col gap-3"><div class="flex-1 rounded-[1.25rem] bg-accent p-5"><p class="text-xs text-white/70">Coverage</p><p class="mt-12 text-4xl font-bold tracking-[-.06em]">24/7</p><p class="mt-1 text-xs text-white/70">Every call, covered.</p></div><div class="rounded-[1.25rem] bg-paper p-5 text-ink"><p class="text-xs font-bold">Showing booked ✓</p><p class="mt-8 text-sm font-semibold">22 Garden Lane</p><p class="mt-1 text-xs text-black/45">Tomorrow · 4:30 PM</p></div></div>
+              <div class="rounded-[1.25rem] bg-white/[.06] p-5"><p class="text-[10px] font-bold uppercase tracking-[.18em] text-white/35">Memory recalled</p><div class="mt-8 flex items-end justify-between"><div><p class="text-sm text-white/65">Maya remembers</p><p class="mt-1 text-2xl font-bold tracking-[-.04em]">Jordan Lee</p></div><span class="grid size-12 place-items-center rounded-full bg-accent">◉</span></div><div class="mt-8 flex h-12 items-center gap-1" aria-hidden="true">{[14,28,42,21,36,48,24,32,16,43,28,37,18,31,45,23].map((height) => <span class="voice-bar" style={`height:${height}px`}></span>)}</div><div class="mt-5 flex flex-wrap gap-2 text-xs text-white/55"><span class="rounded-full bg-white/10 px-3 py-1.5">3+ beds</span><span class="rounded-full bg-white/10 px-3 py-1.5">West end</span><span class="rounded-full bg-white/10 px-3 py-1.5">Move-in ready</span></div></div>
+              <div class="flex flex-col gap-3"><div class="flex-1 rounded-[1.25rem] bg-accent p-5"><p class="text-xs text-white/70">Memory layer</p><p class="mt-12 text-4xl font-bold tracking-[-.06em]">1 source</p><p class="mt-1 text-xs text-white/70">Transactions + vectors.</p></div><div class="rounded-[1.25rem] bg-paper p-5 text-ink"><p class="text-xs font-bold">Showing booked ✓</p><p class="mt-8 text-sm font-semibold">22 Garden Lane</p><p class="mt-1 text-xs text-black/45">Tomorrow · 4:30 PM</p></div></div>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <section id="product" class="mx-auto max-w-7xl px-5 py-24 sm:px-8 lg:py-32">
-      <div class="grid gap-10 lg:grid-cols-2"><div><p class="eyebrow">One thoughtful conversation</p><h2 class="section-title mt-5 max-w-[11ch]">From first ring to front door.</h2></div><p class="max-w-xl self-end text-lg leading-8 text-black/55">wondering gives every inquiry a personal, immediate response—even while you are driving, showing a home, or finally off the clock.</p></div>
-      <div class="mt-16 grid border-y border-line lg:grid-cols-3">{FEATURES.map(([n,title,body]) => <article class="border-b border-line py-9 lg:border-b-0 lg:border-r lg:px-8 lg:first:pl-0 lg:last:border-r-0"><div class="flex justify-between text-xs"><span class="text-accent">●</span><span class="text-black/40">{n}</span></div><h3 class="mt-16 max-w-[14ch] text-2xl font-bold tracking-[-.04em]">{title}</h3><p class="mt-4 max-w-sm text-sm leading-6 text-black/55">{body}</p></article>)}</div>
+    <section id="memory" class="mx-auto max-w-7xl scroll-mt-28 px-5 py-24 sm:px-8 lg:py-32">
+      <div class="grid gap-10 lg:grid-cols-2"><div><p class="eyebrow">Memory is the product</p><h2 class="section-title mt-5 max-w-[12ch]">A useful agent needs more than a prompt.</h2></div><p class="max-w-xl self-end text-lg leading-8 text-black/55">The model can reason in the moment. CockroachDB gives it durable identity, history, semantic recall, and consistent state across every conversation.</p></div>
+      <div class="mt-16 grid border-y border-line lg:grid-cols-3">{FEATURES.map(([number,title,body]) => <article class="border-b border-line py-9 lg:border-b-0 lg:border-r lg:px-8 lg:first:pl-0 lg:last:border-r-0"><div class="flex justify-between text-xs"><span class="text-accent">●</span><span class="text-black/40">{number}</span></div><h3 class="mt-16 max-w-[14ch] text-2xl font-bold tracking-[-.04em]">{title}</h3><p class="mt-4 max-w-sm text-sm leading-6 text-black/55">{body}</p></article>)}</div>
     </section>
 
-    <section id="how" class="bg-ink text-white"><div class="mx-auto grid max-w-7xl gap-16 px-5 py-24 sm:px-8 lg:grid-cols-[.8fr_1.2fr] lg:py-32"><div><p class="eyebrow">Designed to remember</p><h2 class="section-title mt-5">Every call makes the next one better.</h2></div><div class="grid gap-px overflow-hidden rounded-[1.75rem] bg-white/10 sm:grid-cols-2">{[["Connect","Bring your listings in from one URL or file."],["Personalize","Set your name, market, tone, and calendar."],["Share","Use a phone line, call link, or website embed."],["Remember","Keep every buyer's context across conversations."]].map(([t,b],i)=><div class="bg-ink p-8"><span class="text-xs text-accent">0{i+1}</span><h3 class="mt-10 text-xl font-bold">{t}</h3><p class="mt-3 text-sm leading-6 text-white/50">{b}</p></div>)}</div></div></section>
+    <section id="architecture" class="scroll-mt-28 bg-ink text-white"><div class="mx-auto grid max-w-7xl gap-16 px-5 py-24 sm:px-8 lg:grid-cols-[.8fr_1.2fr] lg:py-32"><div><p class="eyebrow">The memory loop</p><h2 class="section-title mt-5">Every call improves the next action.</h2><p class="mt-7 max-w-md text-sm leading-7 text-white/50">One consistent loop connects OpenAI voice intelligence, CockroachDB distributed memory, and an AWS-hosted application.</p></div><div class="grid gap-px overflow-hidden rounded-[1.75rem] bg-white/10 sm:grid-cols-2">{FLOW.map(([title,body],index)=><div class="bg-ink p-8"><span class="text-xs text-accent">0{index+1}</span><h3 class="mt-10 text-xl font-bold">{title}</h3><p class="mt-3 text-sm leading-6 text-white/50">{body}</p></div>)}</div></div></section>
 
-    <section id="open" class="mx-auto max-w-7xl px-5 py-24 sm:px-8 lg:py-32"><div class="rounded-[2rem] bg-accent px-7 py-16 text-white sm:px-14 lg:px-20"><p class="text-xs font-bold uppercase tracking-[.18em] text-white/70">Open source, all the way down</p><h2 class="mt-7 max-w-[15ch] text-4xl font-bold leading-[1.02] tracking-[-.055em] sm:text-6xl">Your data. Your stack. Your way of working.</h2><p class="mt-6 max-w-2xl leading-7 text-white/75">Built with CockroachDB, LiveKit, OpenAI, FastAPI, and React. Run it on your own infrastructure and shape it around your business.</p><a href={GITHUB} class="btn-secondary mt-9 !border-white/30 !bg-white !text-ink">View on GitHub →</a></div></section>
+    <section id="proof" class="mx-auto max-w-7xl scroll-mt-28 px-5 py-24 sm:px-8 lg:py-32"><div class="rounded-[2rem] bg-accent px-7 py-16 text-white sm:px-14 lg:px-20"><p class="text-xs font-bold uppercase tracking-[.18em] text-white/70">Built for the challenge</p><h2 class="mt-7 max-w-[15ch] text-4xl font-bold leading-[1.02] tracking-[-.055em] sm:text-6xl">CockroachDB is doing the remembering.</h2><div class="mt-10 grid gap-3 md:grid-cols-3"><div class="rounded-2xl border border-white/20 bg-white/10 p-5"><h3 class="font-bold">Distributed Vector Indexing</h3><p class="mt-3 text-sm leading-6 text-white/70">Semantic retrieval beside transactional memory, with no separate vector store.</p></div><div class="rounded-2xl border border-white/20 bg-white/10 p-5"><h3 class="font-bold">Agent-ready ccloud CLI</h3><p class="mt-3 text-sm leading-6 text-white/70">Repeatable, scriptable cluster operations from the terminal.</p></div><div class="rounded-2xl border border-white/20 bg-white/10 p-5"><h3 class="font-bold">AWS deployment</h3><p class="mt-3 text-sm leading-6 text-white/70">The complete voice-agent stack runs in AWS ap-south-1.</p></div></div><div class="mt-9 flex flex-wrap gap-3"><a href={APP} class="btn-secondary !border-white/30 !bg-white !text-ink">Open live demo →</a><a href={GITHUB} class="btn-secondary !border-white/30 !text-white">View source</a></div></div></section>
 
-    <section class="mx-auto max-w-4xl px-5 py-24 sm:px-8"><div class="text-center"><p class="eyebrow">The useful details</p><h2 class="section-title mt-5">Questions, answered.</h2></div><div class="mt-12 border-t border-line">{FAQ.map(([q,a])=><details class="group border-b border-line py-5"><summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-bold">{q}<span class="grid size-8 place-items-center rounded-full border border-line text-xl font-normal transition-transform group-open:rotate-45">+</span></summary><p class="max-w-2xl pt-3 text-sm leading-6 text-black/55">{a}</p></details>)}</div></section>
+    <section class="mx-auto max-w-4xl px-5 py-24 sm:px-8"><div class="text-center"><p class="eyebrow">Under the hood</p><h2 class="section-title mt-5">Hackathon questions, answered.</h2></div><div class="mt-12 border-t border-line">{FAQ.map(([question,answer])=><details class="group border-b border-line py-5"><summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-bold">{question}<span class="grid size-8 place-items-center rounded-full border border-line text-xl font-normal transition-transform group-open:rotate-45">+</span></summary><p class="max-w-2xl pt-3 text-sm leading-6 text-black/55">{answer}</p></details>)}</div></section>
 
-    <section class="px-5 pb-5 sm:px-8"><div class="mx-auto flex max-w-7xl flex-col items-start justify-between gap-10 rounded-[2rem] bg-ink px-7 py-16 text-white sm:px-14 lg:flex-row lg:items-end lg:px-20"><div><p class="eyebrow">Your next lead is about to call</p><h2 class="section-title mt-5 max-w-[13ch]">Be there without picking up.</h2></div><a href={GITHUB} class="btn-primary shrink-0">Get wondering free →</a></div></section>
+    <section class="px-5 pb-5 sm:px-8"><div class="mx-auto flex max-w-7xl flex-col items-start justify-between gap-10 rounded-[2rem] bg-ink px-7 py-16 text-white sm:px-14 lg:flex-row lg:items-end lg:px-20"><div><p class="eyebrow">See the memory loop live</p><h2 class="section-title mt-5 max-w-[13ch]">Call once. Come back remembered.</h2></div><a href={APP} class="btn-primary shrink-0">Try the live agent →</a></div></section>
   </main>
   <Footer />
 </Layout>
