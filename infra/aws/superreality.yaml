@@ -59,7 +59,7 @@ Resources:
     Properties:
       ImageId: !Ref AmiId
       InstanceType: !Ref InstanceType
-      IamInstanceProfile: {Name: !Ref AppProfile}
+      IamInstanceProfile: !Ref AppProfile
       SecurityGroupIds: [!GetAtt AppSecurityGroup.GroupId]
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
