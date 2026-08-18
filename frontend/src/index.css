@@ -48,7 +48,7 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* wondering — warm editorial neutrals with one confident vermilion accent. */
+/* wondering uses warm editorial neutrals with one confident vermilion accent. */
 :root {
   --radius: 1rem;
   --background: oklch(0.976 0.009 78);

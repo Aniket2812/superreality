@@ -20,7 +20,7 @@ const MEMORY_FEATURES = [
     icon: Database,
     number: "01",
     title: "Durable by default",
-    body: "Every buyer, preference, call, listing, and showing is written to CockroachDB as operational memory—not left inside a model context window.",
+    body: "Every buyer, preference, call, listing, and showing is written to CockroachDB as operational memory, not left inside a model context window.",
   },
   {
     icon: Search,
@@ -46,7 +46,7 @@ const MEMORY_FLOW = [
 const FAQ = [
   ["Why is CockroachDB the memory layer?", "The agent needs transactions and semantic recall to agree. CockroachDB keeps buyer state, conversation history, listings, bookings, and vectors in one resilient source of truth."],
   ["Which challenge tools does the project use?", "It uses CockroachDB Distributed Vector Indexing for semantic memory and the agent-ready ccloud CLI for repeatable cluster operations and deployment workflows."],
-  ["What does the agent remember?", "It remembers buyer identity, location and property preferences, previous conversations, relevant listing matches, and showing state—scoped to the correct workspace."],
+  ["What does the agent remember?", "It remembers buyer identity, location and property preferences, previous conversations, relevant listing matches, and showing state, scoped to the correct workspace."],
   ["Where does the application run?", "The full application is deployed on AWS in ap-south-1, with CockroachDB Cloud providing its durable distributed memory layer."],
 ] as const;
 
@@ -117,9 +117,9 @@ export default function LandingPage() {
         <div className="mx-auto grid min-h-[calc(100svh-7rem)] max-w-7xl items-center gap-16 px-5 py-20 sm:px-8 lg:grid-cols-[.9fr_1.1fr] lg:py-24">
           <div className="relative z-10">
             <p className="eyebrow">Agentic memory for real-world conversations</p>
-            <h1 className="display-title mt-7 max-w-[11ch]">An agent that remembers—and acts.</h1>
+            <h1 className="display-title mt-7 max-w-[11ch]">An agent that remembers and acts.</h1>
             <p className="mt-8 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
-              wondering is an AI voice agent that remembers every buyer, retrieves relevant homes with CockroachDB vector search, and turns context into action—all deployed on AWS.
+              wondering is an AI voice agent that remembers every buyer, retrieves relevant homes with CockroachDB vector search, and turns context into action. It is all deployed on AWS.
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
               <Button asChild size="lg"><Link to="/call/demo"><PhoneCall /> Try the live agent</Link></Button>

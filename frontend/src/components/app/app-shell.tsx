@@ -15,7 +15,7 @@ export function AppShell() {
     <div className="min-h-svh bg-background">
       <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-xl">
         <div className="bg-[#201e1b] px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-[0.13em] text-white sm:text-xs">
-          Built for CockroachDB × AWS Hackathon — Build with Agentic Memory
+          Built for CockroachDB × AWS Hackathon: Build with Agentic Memory
         </div>
         <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center gap-5 px-5 sm:px-8">
           <Brand />

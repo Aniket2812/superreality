@@ -20,7 +20,7 @@ function renderPage() {
 
 test("agentic memory headline renders", () => {
   renderPage();
-  expect(screen.getByText(/An agent that remembers—and acts\./i)).toBeInTheDocument();
+  expect(screen.getByText(/An agent that remembers and acts\./i)).toBeInTheDocument();
 });
 
 test("hackathon stack renders without commercial pricing", () => {

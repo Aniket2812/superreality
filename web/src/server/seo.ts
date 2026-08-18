@@ -12,7 +12,7 @@ export interface RouteMeta {
 
 const ROUTE_META = {
   '/': {
-    title: 'wondering — agentic memory built with CockroachDB and AWS',
+    title: 'wondering: agentic memory built with CockroachDB and AWS',
     description:
       'A CockroachDB × AWS Hackathon voice agent that remembers buyers, retrieves relevant homes with distributed vector search, and acts on persistent context.',
   },
