@@ -45,6 +45,9 @@ Resources:
     Properties:
       GroupDescription: Public demo endpoints; administration uses SSM, not SSH
       SecurityGroupIngress:
+        - {IpProtocol: tcp, FromPort: 80, ToPort: 80, CidrIp: 0.0.0.0/0, Description: HTTPS certificate redirect}
+        - {IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0, Description: Secure application and signalling}
+        - {IpProtocol: udp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0, Description: HTTP3}
         - {IpProtocol: tcp, FromPort: 5173, ToPort: 5173, CidrIp: 0.0.0.0/0, Description: React app}
         - {IpProtocol: tcp, FromPort: 8000, ToPort: 8000, CidrIp: 0.0.0.0/0, Description: FastAPI}
         - {IpProtocol: tcp, FromPort: 7880, ToPort: 7881, CidrIp: 0.0.0.0/0, Description: LiveKit signalling and ICE TCP}
@@ -92,13 +95,14 @@ Resources:
           AGENT_SERVICE_SECRET=$AGENT_SECRET
           LIVEKIT_API_KEY=superreality
           LIVEKIT_API_SECRET=$LIVEKIT_SECRET
-          PUBLIC_LIVEKIT_URL=ws://${AppAddress}:7880
+          PUBLIC_DOMAIN=${AppAddress}.sslip.io
+          PUBLIC_LIVEKIT_URL=wss://${AppAddress}.sslip.io/livekit
           LIVEKIT_URL=ws://livekit:7880
           BACKEND_URL=http://backend:8080
-          VITE_TOKEN_ENDPOINT=http://${AppAddress}:8000/api/v1/token
+          VITE_TOKEN_ENDPOINT=https://${AppAddress}.sslip.io/api/v1/token
           VITE_AGENT_NAME=realty
-          CORS_ORIGINS_STR=http://${AppAddress}:5173
-          WIDGET_ALLOWED_ORIGINS_STR=http://${AppAddress}:5173
+          CORS_ORIGINS_STR=https://${AppAddress}.sslip.io
+          WIDGET_ALLOWED_ORIGINS_STR=https://${AppAddress}.sslip.io
           ENVFILE
           cat > infra/livekit/livekit.yaml <<LKCONFIG
           port: 7880
@@ -112,7 +116,7 @@ Resources:
           logging:
             level: info
           LKCONFIG
-          docker compose up -d --build backend livekit agent frontend
+          docker compose -f docker-compose.yml -f infra/aws/docker-compose.yml up -d --build backend livekit agent frontend caddy
 
   AddressAssociation:
     Type: AWS::EC2::EIPAssociation
@@ -122,10 +126,10 @@ Resources:
 
 Outputs:
   ApplicationUrl:
-    Value: !Sub http://${AppAddress}:5173
+    Value: !Sub https://${AppAddress}.sslip.io
   ApiDocsUrl:
-    Value: !Sub http://${AppAddress}:8000/docs
+    Value: !Sub https://${AppAddress}.sslip.io/docs
   LiveKitUrl:
-    Value: !Sub ws://${AppAddress}:7880
+    Value: !Sub wss://${AppAddress}.sslip.io/livekit
   InstanceId:
     Value: !Ref AppInstance

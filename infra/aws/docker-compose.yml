@@ -1,0 +1,24 @@
+services:
+  caddy:
+    image: caddy:2.10.2-alpine
+    env_file: .env
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./infra/aws/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+      - caddyconfig:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+      livekit:
+        condition: service_started
+      frontend:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  caddydata:
+  caddyconfig:

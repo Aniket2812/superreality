@@ -1,0 +1,16 @@
+{$PUBLIC_DOMAIN} {
+  encode zstd gzip
+
+  @backend path /api/* /docs* /openapi.json /health
+  handle @backend {
+    reverse_proxy backend:8080
+  }
+
+  handle_path /livekit/* {
+    reverse_proxy livekit:7880
+  }
+
+  handle {
+    reverse_proxy frontend:80
+  }
+}
