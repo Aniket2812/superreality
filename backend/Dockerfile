@@ -1,0 +1,58 @@
+# ---- 1) Builder: resolve and install deps into a venv with uv -------------
+FROM python:3.11-slim AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
+
+# Bring in the uv binary (pinned image)
+COPY --from=ghcr.io/astral-sh/uv:0.8 /uv /usr/local/bin/uv
+
+WORKDIR /app
+
+# Build deps for psycopg2 (pulled in by cognee[postgres]): it compiles from source
+# and needs pg_config + libpq headers, absent from the slim image.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential libpq-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install dependencies first (cached layer), without the project source
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-install-project --no-dev
+
+# Now copy the source and install the project itself
+COPY . .
+RUN uv sync --frozen --no-dev
+
+# ---- 2) Runtime: minimal image, just the venv + app -----------------------
+FROM python:3.11-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH="/app" \
+    PATH="/app/.venv/bin:$PATH"
+
+# tini for signals; libpq5 is the runtime lib psycopg2 links against.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends tini libpq5 && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN useradd --create-home --shell /bin/bash appuser
+WORKDIR /app
+
+# Copy the fully-built app (including .venv) from the builder
+COPY --from=builder --chown=appuser:appuser /app /app
+
+USER appuser
+EXPOSE 8080
+
+ENTRYPOINT ["/usr/bin/tini", "--"]
+# Apply DB migrations before serving (idempotent). A failed migration blocks startup on
+# purpose, so we never serve the tenant-scoped API against a half-migrated schema. Runs once
+# per container start, before gunicorn forks its workers.
+CMD alembic upgrade head && exec gunicorn -k uvicorn.workers.UvicornWorker src.main:app \
+    --bind "0.0.0.0:${PORT:-8080}" \
+    --workers "${WEB_CONCURRENCY:-2}" \
+    --timeout 0 \
+    --access-logfile - --error-logfile -
