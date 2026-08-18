@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useOrganization } from "@clerk/clerk-react";
 import {
   Building2,
   Link2,
@@ -27,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { curatedImage, houseImage } from "@/lib/house-images";
+import { useWorkspace } from "@/lib/workspace";
 
 // A public synthetic realtor site so first-time users can watch onboarding work in one click,
 // before they have their own site handy. Overridable per deploy.
@@ -46,7 +46,7 @@ function specLine(l: LiveListing): string {
 }
 
 export default function Listings() {
-  const { organization } = useOrganization();
+  const { organization } = useWorkspace();
   const realtor = organization?.name ?? "My agency";
 
   const [live, setLive] = useState<LiveListing[]>([]);

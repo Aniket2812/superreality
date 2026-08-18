@@ -1,7 +1,6 @@
 // frontend/src/routes/overview.tsx
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useUser } from "@clerk/clerk-react";
 import { Building2, CalendarCheck, PhoneCall, Sparkles, Users } from "lucide-react";
 import {
   getAssistantPersona,
@@ -18,6 +17,7 @@ import { MemorySection } from "@/components/app/memory-section";
 import { StorySection } from "@/components/app/story-section";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useWorkspace } from "@/lib/workspace";
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -43,7 +43,7 @@ const STEPS = [
 ];
 
 export default function Overview() {
-  const { user } = useUser();
+  const { firstName } = useWorkspace();
   const [listings, setListings] = useState(0);
   const [buyers, setBuyers] = useState(0);
   const [pipeline, setPipeline] = useState<PipelineResponse>({ bookings: [], calls: [] });
@@ -81,7 +81,7 @@ export default function Overview() {
     <div className="flex flex-col gap-8 sm:gap-10">
       {/* 1. What it is */}
       <StorySection
-        title={`${greeting()}${user?.firstName ? `, ${user.firstName}` : ""}`}
+        title={`${greeting()}${firstName ? `, ${firstName}` : ""}`}
         subtitle="wondering is your always-on buyer concierge. It answers every call, remembers every person, and books showings while you keep moving."
       >
         {introWho && (

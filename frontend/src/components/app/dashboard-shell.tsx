@@ -3,7 +3,6 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   CreateOrganization,
   OrganizationSwitcher,
-  useOrganization,
   UserButton,
 } from "@clerk/clerk-react";
 import {
@@ -19,6 +18,7 @@ import { ThemeToggle } from "@/components/app/theme-toggle";
 import { Brand } from "@/components/app/brand";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useWorkspace } from "@/lib/workspace";
 
 const NAV = [
   { to: "/overview", label: "Overview", icon: LayoutDashboard },
@@ -71,7 +71,7 @@ function FirstRun() {
   );
 }
 
-function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
+function SidebarBody({ onNavigate, isDemo }: { onNavigate?: () => void; isDemo: boolean }) {
   return (
     <div className="flex h-full flex-col gap-1 bg-sidebar text-sidebar-foreground">
       <div onClick={onNavigate} className="flex h-20 shrink-0 items-center px-5 [&_a]:text-sidebar-foreground">
@@ -100,14 +100,18 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       <div className="flex items-center justify-between gap-2 border-t border-sidebar-border px-4 py-4">
-        <div className="flex min-w-0 items-center gap-2">
-          <UserButton />
-          <OrganizationSwitcher
-            hidePersonal
-            afterSelectOrganizationUrl="/overview"
-            afterCreateOrganizationUrl="/overview"
-          />
-        </div>
+        {isDemo ? (
+          <div className="rounded-full bg-sidebar-accent px-3 py-1.5 text-xs font-medium">Live demo workspace</div>
+        ) : (
+          <div className="flex min-w-0 items-center gap-2">
+            <UserButton />
+            <OrganizationSwitcher
+              hidePersonal
+              afterSelectOrganizationUrl="/overview"
+              afterCreateOrganizationUrl="/overview"
+            />
+          </div>
+        )}
         <ThemeToggle />
       </div>
     </div>
@@ -117,7 +121,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
 export function DashboardShell() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
-  const { organization, isLoaded } = useOrganization();
+  const { organization, isLoaded, isDemo } = useWorkspace();
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -148,7 +152,7 @@ export function DashboardShell() {
       {/* Desktop sidebar */}
       <aside className="hidden border-r border-sidebar-border lg:block">
         <div className="sticky top-0 h-svh">
-          <SidebarBody />
+          <SidebarBody isDemo={isDemo} />
         </div>
       </aside>
 
@@ -165,7 +169,7 @@ export function DashboardShell() {
             aria-label="Navigation menu"
             className="absolute inset-y-0 left-0 w-64 border-r border-sidebar-border shadow-xl"
           >
-            <SidebarBody onNavigate={() => setOpen(false)} />
+            <SidebarBody isDemo={isDemo} onNavigate={() => setOpen(false)} />
             <Button
               ref={closeButtonRef}
               variant="ghost"

@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { Link, Outlet } from "react-router-dom";
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
 import { ArrowRight } from "lucide-react";
 import { ThemeToggle } from "@/components/app/theme-toggle";
@@ -20,9 +20,9 @@ export function AppShell() {
         <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center gap-5 px-5 sm:px-8">
           <Brand />
           <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex" aria-label="Main navigation">
-            <NavLink to="/#problem" className="transition-colors hover:text-foreground">The problem</NavLink>
-            <NavLink to="/#how" className="transition-colors hover:text-foreground">How it works</NavLink>
-            <NavLink to="/#memory" className="transition-colors hover:text-foreground">What it remembers</NavLink>
+            <a href="/#problem" className="transition-colors hover:text-foreground">The problem</a>
+            <a href="/#how" className="transition-colors hover:text-foreground">How it works</a>
+            <a href="/#memory" className="transition-colors hover:text-foreground">What it remembers</a>
           </nav>
           <div className="ml-auto flex items-center gap-2">
             {clerkEnabled ? (

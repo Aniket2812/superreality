@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useOrganization } from "@clerk/clerk-react";
 import {
   ArrowRight,
   Check,
@@ -16,9 +15,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useWorkspace } from "@/lib/workspace";
 
 export default function Settings() {
-  const { organization } = useOrganization();
+  const { organization } = useWorkspace();
 
   const [smsTo, setSmsTo] = useState("");
   const [saving, setSaving] = useState(false);

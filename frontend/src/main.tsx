@@ -5,6 +5,7 @@ import "./index.css";
 import App from "./App.tsx";
 import { ThemeProvider } from "./lib/theme-provider";
 import { ThemedClerkProvider } from "./components/app/themed-clerk-provider";
+import { WorkspaceProvider } from "./lib/workspace-context";
 
 // Resolve the theme before first paint so there is no light/dark flash.
 const stored = localStorage.getItem("rr-theme");
@@ -18,7 +19,9 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ThemeProvider>
       <ThemedClerkProvider>
-        <App />
+        <WorkspaceProvider>
+          <App />
+        </WorkspaceProvider>
       </ThemedClerkProvider>
     </ThemeProvider>
   </StrictMode>,

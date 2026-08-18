@@ -9,7 +9,7 @@ import logging
 from typing import Annotated, Any
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer
 
 from src.core.config import config
@@ -17,7 +17,7 @@ from src.repository import tenant_repository
 
 logger = logging.getLogger(__name__)
 
-clerk_scheme = HTTPBearer(auto_error=True)
+clerk_scheme = HTTPBearer(auto_error=False)
 
 _jwks_client: jwt.PyJWKClient | None = None
 
@@ -53,9 +53,21 @@ def verify_clerk_token(token: str) -> dict[str, Any]:
 
 
 async def get_tenant_id(
-    credentials: Annotated[Any, Depends(clerk_scheme)],
+    request: Request,
+    credentials: Annotated[Any | None, Depends(clerk_scheme)],
 ) -> str:
     """FastAPI dependency: the verified tenant id (Clerk organization id)."""
+    # The hackathon deployment intentionally runs without Clerk. In that mode, expose only
+    # read-only console requests for the seeded `demo` tenant so judges can inspect the real
+    # CockroachDB-backed dashboard. Mutations remain authenticated and unavailable.
+    if credentials is None:
+        if not config.CLERK_JWKS_URL and request.method in {"GET", "HEAD", "OPTIONS"}:
+            return "demo"
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            detail="Realtor authentication required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     claims = verify_clerk_token(credentials.credentials)
     # Clerk puts the active org in `org_id` (default JWT template) or `o.id` (newer).
     org_id = claims.get("org_id")

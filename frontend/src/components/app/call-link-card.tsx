@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useOrganization } from "@clerk/clerk-react";
 import { Check, Copy, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useWorkspace } from "@/lib/workspace";
 
 /**
  * The realtor's shareable buyer line. The path carries their org id (the tenant slug), so a
@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
  * Renders nothing until an organization is active (the tenant is not yet known otherwise).
  */
 export function CallLinkCard() {
-  const { organization } = useOrganization();
+  const { organization } = useWorkspace();
   const [copied, setCopied] = useState(false);
 
   if (!organization) return null;
