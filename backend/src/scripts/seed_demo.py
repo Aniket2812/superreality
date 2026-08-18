@@ -69,11 +69,16 @@ def openai_configured() -> bool:
 
 
 async def seed() -> str:
-    """Write the demo realtor, listings, and returning buyer into the store."""
+    """Write the demo tenant, realtor, listings, and returning buyer."""
     # Imported lazily so the module (and its data constants) can be imported for
     # tests without opening a database connection.
     from src.memory.store import get_memory_store
+    from src.repository import tenant_repository
 
+    # The public token endpoint validates tenant slugs against the operational
+    # tenant table before creating a LiveKit room. Keep that row and the agent's
+    # CockroachDB memory in one idempotent seed transaction flow.
+    await tenant_repository.upsert(TENANT_ID, REALTOR["name"])
     store = get_memory_store()
     await store.add_listings(TENANT_ID, REALTOR, LISTINGS)
     await store.upsert_buyer(TENANT_ID, BUYER)
