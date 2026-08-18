@@ -1,0 +1,131 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Super Realty hackathon application host on AWS
+
+Parameters:
+  InstanceType:
+    Type: String
+    Default: t3.large
+    AllowedValues: [t3.medium, t3.large, t3.xlarge]
+  RepositoryUrl:
+    Type: String
+    Default: https://github.com/Aniket2812/superreality.git
+  AmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+
+Resources:
+  AppRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: ec2.amazonaws.com}
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: ReadSuperRealitySecrets
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: ssm:GetParameter
+                Resource:
+                  - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/superreality/*
+
+  AppProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: [!Ref AppRole]
+
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Public demo endpoints; administration uses SSM, not SSH
+      SecurityGroupIngress:
+        - {IpProtocol: tcp, FromPort: 5173, ToPort: 5173, CidrIp: 0.0.0.0/0, Description: React app}
+        - {IpProtocol: tcp, FromPort: 8000, ToPort: 8000, CidrIp: 0.0.0.0/0, Description: FastAPI}
+        - {IpProtocol: tcp, FromPort: 7880, ToPort: 7881, CidrIp: 0.0.0.0/0, Description: LiveKit signalling and ICE TCP}
+        - {IpProtocol: udp, FromPort: 50000, ToPort: 50020, CidrIp: 0.0.0.0/0, Description: LiveKit ICE UDP}
+
+  AppAddress:
+    Type: AWS::EC2::EIP
+    Properties: {Domain: vpc}
+
+  AppInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref AmiId
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: {Name: !Ref AppProfile}
+      SecurityGroupIds: [!GetAtt AppSecurityGroup.GroupId]
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs: {VolumeSize: 30, VolumeType: gp3, Encrypted: true, DeleteOnTermination: true}
+      Tags:
+        - {Key: Name, Value: superreality-hackathon}
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -euo pipefail
+          dnf install -y docker git
+          systemctl enable --now docker
+          mkdir -p /usr/local/lib/docker/cli-plugins
+          if ! docker compose version >/dev/null 2>&1; then
+            curl -fsSL https://github.com/docker/compose/releases/download/v2.39.2/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
+            chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+          fi
+          git clone ${RepositoryUrl} /opt/superreality
+          cd /opt/superreality
+          DB_URL=$(aws ssm get-parameter --name /superreality/database-url --with-decryption --query Parameter.Value --output text --region ${AWS::Region})
+          OPENAI_KEY=$(aws ssm get-parameter --name /superreality/openai-api-key --with-decryption --query Parameter.Value --output text --region ${AWS::Region})
+          JWT_SECRET=$(openssl rand -hex 32)
+          AGENT_SECRET=$(openssl rand -hex 32)
+          LIVEKIT_SECRET=$(openssl rand -hex 32)
+          cat > .env <<ENVFILE
+          ENV=prod
+          OPENAI_API_KEY=$OPENAI_KEY
+          DATABASE_URL=$DB_URL
+          JWT_SECRET_KEY=$JWT_SECRET
+          AGENT_SERVICE_SECRET=$AGENT_SECRET
+          LIVEKIT_API_KEY=superreality
+          LIVEKIT_API_SECRET=$LIVEKIT_SECRET
+          PUBLIC_LIVEKIT_URL=ws://${AppAddress}:7880
+          LIVEKIT_URL=ws://livekit:7880
+          BACKEND_URL=http://backend:8080
+          VITE_TOKEN_ENDPOINT=http://${AppAddress}:8000/api/v1/token
+          VITE_AGENT_NAME=realty
+          CORS_ORIGINS_STR=http://${AppAddress}:5173
+          WIDGET_ALLOWED_ORIGINS_STR=http://${AppAddress}:5173
+          ENVFILE
+          cat > infra/livekit/livekit.yaml <<LKCONFIG
+          port: 7880
+          rtc:
+            tcp_port: 7881
+            port_range_start: 50000
+            port_range_end: 50020
+            use_external_ip: true
+          keys:
+            superreality: $LIVEKIT_SECRET
+          logging:
+            level: info
+          LKCONFIG
+          docker compose up -d --build backend livekit agent frontend
+
+  AddressAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt AppAddress.AllocationId
+      InstanceId: !Ref AppInstance
+
+Outputs:
+  ApplicationUrl:
+    Value: !Sub http://${AppAddress}:5173
+  ApiDocsUrl:
+    Value: !Sub http://${AppAddress}:8000/docs
+  LiveKitUrl:
+    Value: !Sub ws://${AppAddress}:7880
+  InstanceId:
+    Value: !Ref AppInstance

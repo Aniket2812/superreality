@@ -36,8 +36,8 @@ services:
     env_file: .env
     environment:
       PORT: 8080
-      DATABASE_URL: postgresql://root@db:26257/defaultdb?sslmode=disable
-      LIVEKIT_URL: ws://localhost:7880
+      DATABASE_URL: ${DATABASE_URL:-postgresql://root@db:26257/defaultdb?sslmode=disable}
+      LIVEKIT_URL: ${PUBLIC_LIVEKIT_URL:-ws://localhost:7880}
       WEB_CONCURRENCY: "1"
     ports:
       - "8000:8080"
@@ -80,7 +80,7 @@ services:
     image: realtyrecall-backend
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://root@db:26257/defaultdb?sslmode=disable
+      DATABASE_URL: ${DATABASE_URL:-postgresql://root@db:26257/defaultdb?sslmode=disable}
     command: ["python", "-m", "src.scripts.seed_demo"]
     depends_on:
       db:
