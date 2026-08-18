@@ -9,7 +9,7 @@ from src.models.base_model import BaseModel
 
 
 class CallLog(BaseModel, table=True):
-    """Operational record of a call. The buyer and listings discussed live in Cognee;
+    """Operational record of a call. Buyer and listing memory live in CockroachDB too;
     this row keeps the transcript and outcome, with a soft link to a Booking row.
     """
 

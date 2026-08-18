@@ -19,14 +19,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.container.init_resources()
         logger.info("Container resources initialized")
 
-    # Wire the VoiceGateway backend-cost telemetry (litellm capture for Cognee + the
-    # onboarding recorder). A no-op unless VOICEGW_COLLECTOR_URL is set; never blocks startup.
+    # Wire backend AI-cost telemetry. A no-op unless VOICEGW_COLLECTOR_URL is set.
     telemetry.install()
 
     logger.info("Startup event completed")
 
     yield
 
+    from src.memory.store import close_memory_pool
+
+    await close_memory_pool()
     # Flush any buffered telemetry before the sink's client is torn down.
     await telemetry.aclose()
 

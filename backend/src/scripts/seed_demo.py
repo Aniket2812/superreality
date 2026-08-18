@@ -1,4 +1,4 @@
-"""Seed reproducible Sarnia demo data into Cognee.
+"""Seed reproducible Sarnia demo data into CockroachDB memory.
 
 Run inside the backend image (WORKDIR /app, so `src` is importable):
 
@@ -8,7 +8,7 @@ Or from a host with the backend environment active:
 
     cd backend && uv run python -m src.scripts.seed_demo
 
-Cognee uses OpenAI for extraction and embeddings, so seeding is skipped with a
+OpenAI creates the memory embeddings, so seeding is skipped with a
 friendly note when OPENAI_API_KEY is unset. That keeps an empty-.env `make up`
 green instead of failing on the seed step.
 """
@@ -64,14 +64,14 @@ BUYER: dict[str, Any] = {
 
 
 def openai_configured() -> bool:
-    """True when Cognee can run: it needs OpenAI for extraction and embeddings."""
+    """True when semantic memory can create OpenAI embeddings."""
     return bool(os.getenv("OPENAI_API_KEY", "").strip())
 
 
 async def seed() -> str:
     """Write the demo realtor, listings, and returning buyer into the store."""
     # Imported lazily so the module (and its data constants) can be imported for
-    # tests without pulling in Cognee or opening a database connection.
+    # tests without opening a database connection.
     from src.memory.store import get_memory_store
 
     store = get_memory_store()
@@ -86,8 +86,8 @@ async def seed() -> str:
 async def main() -> None:
     if not openai_configured():
         print(
-            "Skipping demo seed: OPENAI_API_KEY is not set, and Cognee needs it "
-            "for extraction and embeddings. Set it in .env and run `make seed`."
+            "Skipping demo seed: OPENAI_API_KEY is not set. Set it in .env "
+            "and run `make seed` to create CockroachDB vector memories."
         )
         return
     print(await seed())

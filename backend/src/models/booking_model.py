@@ -7,8 +7,8 @@ from src.models.base_model import BaseModel
 
 
 class Booking(BaseModel, table=True):
-    """Operational booking row. The Showing graph node lives in Cognee; this row is the
-    idempotent, cal.com-synced record of a confirmed showing on the realtor's calendar.
+    """Operational booking row. Its agent-memory event also lives in CockroachDB; this row
+    is the idempotent, cal.com-synced record of a confirmed showing.
     """
 
     __tablename__ = "bookings"

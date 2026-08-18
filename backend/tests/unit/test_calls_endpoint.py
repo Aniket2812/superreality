@@ -12,10 +12,24 @@ class _Row:
 
 class _FakeStore:
     def __init__(self) -> None:
-        self.improved: list[tuple[str, str | None]] = []
+        self.improved: list[dict] = []
 
-    async def improve(self, tenant_id: str, phone: str | None = None) -> None:
-        self.improved.append((tenant_id, phone))
+    async def improve(
+        self,
+        tenant_id: str,
+        phone: str | None = None,
+        *,
+        summary: str | None = None,
+        transcript: list[dict] | None = None,
+    ) -> None:
+        self.improved.append(
+            {
+                "tenant_id": tenant_id,
+                "phone": phone,
+                "summary": summary,
+                "transcript": transcript,
+            }
+        )
 
 
 @pytest.fixture(autouse=True)
@@ -54,7 +68,14 @@ async def test_close_call_persists_and_improves(monkeypatch):
     # The tenant is recovered from the t_{tenant}_{random} room name.
     assert captured["tenant_id"] == "org_abc"
     # improve was folded into this tenant's buyer memory.
-    assert store.improved == [("org_abc", "+15195550100")]
+    assert store.improved == [
+        {
+            "tenant_id": "org_abc",
+            "phone": "+15195550100",
+            "summary": None,
+            "transcript": None,
+        }
+    ]
 
 
 async def test_close_call_non_tenant_room_leaves_tenant_unset(monkeypatch):

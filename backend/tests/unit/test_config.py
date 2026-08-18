@@ -10,21 +10,21 @@ from src.core.config import (
 from src.schemas.users_schemas import UserUpdate
 
 
-def test_neon_url_coerced_to_asyncpg_and_libpq_params_stripped():
+def test_postgres_wire_url_coerced_to_cockroach_asyncpg_and_params_stripped():
     url = "postgresql://u:p@ep-x.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
-    assert _to_async_url(url) == "postgresql+asyncpg://u:p@ep-x.aws.neon.tech/neondb"
+    assert _to_async_url(url) == "cockroachdb+asyncpg://u:p@ep-x.aws.neon.tech/neondb"
 
 
 def test_postgres_scheme_alias_coerced():
     assert (
         _to_async_url("postgres://u:p@h:5432/db")
-        == "postgresql+asyncpg://u:p@h:5432/db"
+        == "cockroachdb+asyncpg://u:p@h:5432/db"
     )
 
 
 def test_existing_asyncpg_url_preserved():
     url = "postgresql+asyncpg://u:p@h:5432/db"
-    assert _to_async_url(url) == url
+    assert _to_async_url(url) == "cockroachdb+asyncpg://u:p@h:5432/db"
 
 
 def test_non_ssl_query_params_are_kept():

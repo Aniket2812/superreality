@@ -20,7 +20,9 @@ class Database:
             echo=config.DEBUG,
             echo_pool=config.DEBUG,
             pool_pre_ping=True,
-            pool_recycle=600,
+            # CockroachDB recommends recycling application connections regularly so
+            # topology changes and certificate rotation are picked up promptly.
+            pool_recycle=300,
             connect_args=config.SQLALCHEMY_CONNECT_ARGS,
         )
 

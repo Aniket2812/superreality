@@ -1,122 +1,128 @@
-"""Read-only views over the tenant's Cognee subgraph for the console.
-
-This is the single surface the graph visualization, insights, and match cards read from. It
-reuses store.py's Cognee configuration and NodeSet scoping so every read stays inside one
-realtor's data.
-"""
+"""Tenant graph and insight projections built from CockroachDB memory relations."""
 
 from __future__ import annotations
 
 from typing import Any
 
-import cognee
-from cognee import SearchType
-from cognee.infrastructure.databases.graph import get_graph_engine
-from cognee.modules.engine.models import NodeSet
-
-import src.memory.store as _store_module
 from src import telemetry
-from src.memory.store import ensure_cognee, tenant_tag
-
-
-def _node_label(props: dict[str, Any]) -> str:
-    """A short, human name for a node, by type. Address for a home, name for a person."""
-    for key in ("address", "name", "code", "when_utc"):
-        value = props.get(key)
-        if value:
-            return str(value)
-    return str(props.get("id") or "node")
-
-
-def _edge_triplet(edge: Any) -> tuple[str, str, str] | None:
-    """Normalize a graph edge to (source, target, rel). Cognee edges are tuples whose first
-    two items are the endpoint ids and whose third (when present) is the relationship name.
-    """
-    if not isinstance(edge, list | tuple) or len(edge) < 2:
-        return None
-    source, target = str(edge[0]), str(edge[1])
-    rel = str(edge[2]) if len(edge) >= 3 and isinstance(edge[2], str) else "related"
-    return source, target, rel
+from src.memory.store import get_memory_store
 
 
 class GraphService:
     async def get_subgraph(self, tenant_id: str, *, cap: int = 150) -> dict[str, Any]:
-        await ensure_cognee()
-        graph = await get_graph_engine()
-        raw_nodes, raw_edges = await graph.get_nodeset_subgraph(
-            node_type=NodeSet, node_name=[tenant_tag(tenant_id)]
-        )
-        ordered = sorted(
-            raw_nodes,
-            key=lambda n: str((n[1] or {}).get("created_at") or ""),
-            reverse=True,
-        )
+        snapshot = await get_memory_store().graph_snapshot(tenant_id, cap)
         nodes: list[dict[str, Any]] = []
-        for node_id, props in ordered[:cap]:
-            props = props or {}
+        edges: list[dict[str, str]] = []
+        areas: set[str] = set()
+        buyer_ids: dict[str, str] = {}
+
+        for listing in snapshot["listings"]:
+            node_id = f"listing:{listing['id']}"
             nodes.append(
                 {
-                    "id": str(node_id),
-                    "label": _node_label(props),
-                    "type": str(props.get("type") or "Node"),
-                    "props": props,
+                    "id": node_id,
+                    "label": listing["address"],
+                    "type": "Listing",
+                    "props": listing,
                 }
             )
-        kept = {n["id"] for n in nodes}
-        edges: list[dict[str, Any]] = []
-        for raw in raw_edges or []:
-            triplet = _edge_triplet(raw)
-            if triplet is None:
-                continue
-            source, target, rel = triplet
-            if source in kept and target in kept:
-                edges.append({"source": source, "target": target, "rel": rel})
-        return {"nodes": nodes, "edges": edges}
-
-    _INSIGHT_PROMPTS = (
-        (
-            "What buyers want",
-            "Across remembered buyers, what are they most asking for lately? One sentence.",
-        ),
-        (
-            "Hot neighbourhoods",
-            "Which neighbourhoods or areas are most in demand across buyers? One sentence.",
-        ),
-    )
-
-    @telemetry.track("cognee.insights")
-    async def insights(self, tenant_id: str) -> list[dict[str, Any]]:
-        try:
-            await ensure_cognee()
-        except Exception:  # noqa: BLE001  (insights are best-effort; never raise)
-            return []
-        cards: list[dict[str, Any]] = []
-        for title, prompt in self._INSIGHT_PROMPTS:
-            try:
-                results = await cognee.search(
-                    query_text=prompt,
-                    query_type=SearchType.GRAPH_SUMMARY_COMPLETION,
-                    node_type=NodeSet,
-                    node_name=[tenant_tag(tenant_id)],
-                    top_k=3,
+            area = listing.get("area")
+            if area:
+                area_id = f"area:{str(area).lower()}"
+                if area_id not in areas:
+                    nodes.append(
+                        {
+                            "id": area_id,
+                            "label": area,
+                            "type": "Neighbourhood",
+                            "props": {"name": area},
+                        }
+                    )
+                    areas.add(area_id)
+                edges.append(
+                    {"source": node_id, "target": area_id, "rel": "located_in"}
                 )
-            except Exception:  # noqa: BLE001
-                continue
-            body = str(results[0]).strip() if results else ""
-            if body:
-                cards.append({"title": title, "body": body})
+        for buyer in snapshot["buyers"]:
+            node_id = f"buyer:{buyer['id']}"
+            buyer_ids[buyer["phone_key"]] = node_id
+            nodes.append(
+                {
+                    "id": node_id,
+                    "label": buyer.get("name") or buyer["phone"],
+                    "type": "Buyer",
+                    "props": buyer,
+                }
+            )
+            area = (buyer.get("criteria") or {}).get("area")
+            if area:
+                area_id = f"area:{str(area).lower()}"
+                if area_id not in areas:
+                    nodes.append(
+                        {
+                            "id": area_id,
+                            "label": area,
+                            "type": "Neighbourhood",
+                            "props": {"name": area},
+                        }
+                    )
+                    areas.add(area_id)
+                edges.append({"source": node_id, "target": area_id, "rel": "wants_in"})
+        for interaction in snapshot["interactions"]:
+            node_id = f"interaction:{interaction['id']}"
+            nodes.append(
+                {
+                    "id": node_id,
+                    "label": interaction["kind"].title(),
+                    "type": "Interaction",
+                    "props": interaction,
+                }
+            )
+            buyer_id = buyer_ids.get(interaction.get("buyer_phone_key"))
+            if buyer_id:
+                edges.append({"source": buyer_id, "target": node_id, "rel": "had"})
+        return {"nodes": nodes[:cap], "edges": edges}
+
+    @telemetry.track("cockroach.memory.insights")
+    async def insights(self, tenant_id: str) -> list[dict[str, Any]]:
+        buyers = await get_memory_store().list_buyers(tenant_id)
+        areas: dict[str, int] = {}
+        beds: dict[int, int] = {}
+        for buyer in buyers:
+            criteria = buyer.get("criteria") or {}
+            if criteria.get("area"):
+                areas[str(criteria["area"])] = areas.get(str(criteria["area"]), 0) + 1
+            if criteria.get("minBeds"):
+                value = int(criteria["minBeds"])
+                beds[value] = beds.get(value, 0) + 1
+        cards: list[dict[str, Any]] = []
+        if beds:
+            popular = max(beds, key=beds.get)  # type: ignore[arg-type]
+            cards.append(
+                {
+                    "title": "What buyers want",
+                    "body": f"The most common request is at least {popular} bedrooms.",
+                }
+            )
+        if areas:
+            popular_area = max(areas, key=areas.get)  # type: ignore[arg-type]
+            cards.append(
+                {
+                    "title": "Hot neighbourhoods",
+                    "body": f"{popular_area} has the strongest remembered buyer demand.",
+                }
+            )
         return cards
 
     async def match_report(
         self, tenant_id: str, listing: dict[str, Any]
     ) -> dict[str, Any]:
-        store = _store_module.get_memory_store()
+        store = get_memory_store()
         narrative = await store.match_buyers(tenant_id, listing)
         buyers = await store.list_buyers(tenant_id)
         named = [
-            {"name": b.get("name"), "phone": b.get("phone")}
-            for b in buyers
-            if b.get("name") and str(b["name"]).lower() in narrative.lower()
+            {"name": buyer.get("name"), "phone": buyer.get("phone")}
+            for buyer in buyers
+            if buyer.get("name") and str(buyer["name"]).lower() in narrative.lower()
         ]
         return {"narrative": narrative, "buyers": named, "count": len(named)}
 

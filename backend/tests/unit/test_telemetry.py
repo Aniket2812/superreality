@@ -1,7 +1,6 @@
 """Unit tests for backend AI-cost telemetry (VoiceGateway).
 
-Exercises both capture paths (the explicit onboarding recorder and the litellm-event mapper)
-and the tenant attribution machinery, against a recording sink so no network is touched.
+Exercises explicit OpenAI usage recording and tenant attribution against a recording sink.
 Records are plain dicts (the collector's /v1/ingest wire shape), so assertions use dict keys.
 """
 
@@ -25,17 +24,6 @@ class _RecordingSink:
 
     async def aclose(self) -> None:
         pass
-
-
-class _Usage:
-    def __init__(self, prompt: int, completion: int) -> None:
-        self.prompt_tokens = prompt
-        self.completion_tokens = completion
-
-
-class _Resp:
-    def __init__(self, prompt: int, completion: int) -> None:
-        self.usage = _Usage(prompt, completion)
 
 
 @pytest.fixture
@@ -101,37 +89,19 @@ async def test_track_decorator_attributes_tenant(sink):
     assert sink.rows[0]["metadata"]["tenant_id"] == "realtor_dec"
 
 
-async def test_litellm_completion_event_records(sink):
-    kwargs = {"model": "gpt-4o-mini", "call_type": "acompletion"}
-    with vg.attribute("realtor_L", "cognee.recall"):
-        await vg._emit_from_litellm(kwargs, _Resp(prompt=800, completion=200))
-    row = sink.rows[0]
-    assert row["model_id"] == "openai/gpt-4o-mini"
-    assert row["input_units"] == 800
-    assert row["output_units"] == 200
-    assert row["metadata"] == {
-        "source": "backend",
-        "kind": "completion",
-        "operation": "cognee.recall",
-        "tenant_id": "realtor_L",
-    }
-
-
-async def test_litellm_embedding_event_records_zero_output(sink):
-    kwargs = {"model": "text-embedding-3-small", "call_type": "aembedding"}
-    with vg.attribute("realtor_E", "cognee.add_listings"):
-        await vg._emit_from_litellm(kwargs, _Resp(prompt=1000, completion=0))
+async def test_embedding_usage_records_zero_output(sink):
+    await vg.record_llm_usage(
+        model="text-embedding-3-small",
+        prompt_tokens=1000,
+        operation="cockroach.memory.embedding",
+        kind="embedding",
+        tenant_id="realtor_E",
+    )
     row = sink.rows[0]
     assert row["metadata"]["kind"] == "embedding"
+    assert row["metadata"]["operation"] == "cockroach.memory.embedding"
     assert row["input_units"] == 1000
     assert row["output_units"] == 0
-
-
-async def test_zero_usage_is_skipped(sink):
-    await vg._emit_from_litellm(
-        {"model": "gpt-4o-mini", "call_type": "acompletion"}, _Resp(0, 0)
-    )
-    assert sink.rows == []
 
 
 async def test_prefixed_model_is_left_intact(sink):

@@ -1,58 +1,33 @@
-# One-command local stack for Super Realty.
-# Quickest start: `make up` (bootstraps .env, builds, seeds, prints URLs).
-
+# One-command local Super Realty stack with CockroachDB as its memory layer.
 services:
   db:
-    image: pgvector/pgvector:pg16
-    environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: ${DB_NAME:-app}
+    image: cockroachdb/cockroach:v25.4.0
+    command:
+      - start-single-node
+      - --insecure
+      - --advertise-addr=db
+      - --listen-addr=0.0.0.0:26257
+      - --http-addr=0.0.0.0:8080
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - cockroachdata:/cockroach/cockroach-data
     ports:
-      - "5432:5432" # exposed for local tools / integration tests
+      - "26257:26257"
+      - "8081:8080" # CockroachDB Console
     healthcheck:
-      test:
-        ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-app}"]
+      test: ["CMD", "cockroach", "sql", "--insecure", "--host=localhost:26257", "--execute=SELECT 1"]
       interval: 5s
       timeout: 3s
-      retries: 10
+      retries: 20
 
-  neo4j:
-    image: neo4j:5-community
-    environment:
-      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-neo4jpassword}
-      NEO4J_PLUGINS: '["apoc"]'
-      NEO4J_dbms_security_procedures_unrestricted: apoc.*
-    volumes:
-      - neo4jdata:/data
-    ports:
-      - "7474:7474" # Neo4j Browser
-      - "7687:7687" # Bolt
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          'cypher-shell -u neo4j -p "${NEO4J_PASSWORD:-neo4jpassword}" ''RETURN 1'' >/dev/null 2>&1 || exit 1',
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 15
-      start_period: 30s
-
-  # Bundled LiveKit server so the browser voice call works locally without
-  # LiveKit Cloud. ICE-over-TCP is configured in infra/livekit/livekit.yaml for
-  # reliable host-to-container media (UDP through Docker NAT is flaky on macOS).
   livekit:
     image: livekit/livekit-server:latest
     command: ["--config", "/etc/livekit.yaml"]
     volumes:
       - ./infra/livekit/livekit.yaml:/etc/livekit.yaml:ro
     ports:
-      - "7880:7880" # signaling (ws) + http
-      - "7881:7881" # ICE over TCP
-      - "50000-50020:50000-50020/udp" # ICE over UDP (Linux; TCP is the fallback)
+      - "7880:7880"
+      - "7881:7881"
+      - "50000-50020:50000-50020/udp"
     restart: unless-stopped
 
   backend:
@@ -61,32 +36,16 @@ services:
     env_file: .env
     environment:
       PORT: 8080
-      # The browser connects to LiveKit at this URL (TokenService returns it as
-      # server_url), so it must be host-reachable: localhost, not the internal
-      # docker hostname the agent uses.
+      DATABASE_URL: postgresql://root@db:26257/defaultdb?sslmode=disable
       LIVEKIT_URL: ws://localhost:7880
-      # The Super Agents live-graph registry (src/runtime/live_agents.py) is in-process:
-      # the voice worker POSTs agent state and the console reads it back over SSE. A single
-      # gunicorn worker keeps both on one registry so a self-hosted node shows a consistent
-      # live graph. Plenty for a solo realtor; raise it only behind shared state.
       WEB_CONCURRENCY: "1"
-    volumes:
-      # Persist Cognee's local artifacts (datasets, cache) across restarts.
-      - cogneedata:/app/.cognee_system
-      - cogneedata_data:/app/.data
     ports:
-      - "8000:8080" # http://localhost:8000  (docs at /docs)
+      - "8000:8080"
     depends_on:
       db:
         condition: service_healthy
-      neo4j:
-        condition: service_healthy
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/health', timeout=3)\" || exit 1",
-        ]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/health', timeout=3)\" || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -97,8 +56,6 @@ services:
     build: ./agent
     env_file: .env
     environment:
-      # The worker reaches the bundled LiveKit over the internal docker network.
-      # (The browser uses ws://localhost:7880 via the backend token instead.)
       LIVEKIT_URL: ws://livekit:7880
     depends_on:
       backend:
@@ -113,34 +70,23 @@ services:
       args:
         VITE_TOKEN_ENDPOINT: ${VITE_TOKEN_ENDPOINT:-http://localhost:8000/api/v1/token}
         VITE_AGENT_NAME: ${VITE_AGENT_NAME:-realty}
-        # Required for the realtor console (Clerk auth). Set VITE_CLERK_PUBLISHABLE_KEY in .env.
         VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY:-}
     ports:
-      - "5173:80" # http://localhost:5173
+      - "5173:80"
     depends_on:
       - backend
 
-  # One-shot demo seed (3 Sarnia listings + 1 returning buyer). Reuses the built
-  # backend image and connects to db + neo4j directly. Profile-gated so a bare
-  # `docker compose up` does not run it; `make up` / `make seed` invoke it. Skips
-  # gracefully when OPENAI_API_KEY is unset (Cognee needs it).
   seed:
     image: realtyrecall-backend
     env_file: .env
+    environment:
+      DATABASE_URL: postgresql://root@db:26257/defaultdb?sslmode=disable
     command: ["python", "-m", "src.scripts.seed_demo"]
-    volumes:
-      - cogneedata:/app/.cognee_system
-      - cogneedata_data:/app/.data
     depends_on:
       db:
-        condition: service_healthy
-      neo4j:
         condition: service_healthy
     restart: "no"
     profiles: ["seed"]
 
 volumes:
-  pgdata:
-  neo4jdata:
-  cogneedata:
-  cogneedata_data:
+  cockroachdata:

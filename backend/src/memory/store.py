@@ -1,539 +1,384 @@
-"""Async wrapper over Cognee: the system of record for listings and buyers.
+"""CockroachDB-backed persistent memory for listings, buyers, and interactions.
 
-Cognee owns the graph (Neo4j) and vectors (pgvector). This module configures Cognee
-programmatically from the backend settings (so Cognee's relational DB_* names do not
-collide with the backend's operational DB_*), and exposes the memory operations the API
-and the agent rely on: add listings, recall by criteria, upsert a buyer, improve after a
-call, and forget a buyer (its own dataset, removed exactly).
+Structured facts and OpenAI embeddings live in the same serializable database. Every
+query is tenant-prefixed; semantic recall uses CockroachDB's distributed vector index.
 """
 
 from __future__ import annotations
 
+import asyncio
+import hashlib
 import json
 import os
+import random
 import re
-from typing import Any
-from uuid import NAMESPACE_OID, uuid5
+from collections import OrderedDict
+from collections.abc import Awaitable, Callable
+from typing import Any, TypeVar
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import asyncpg
-import cognee
-from cognee import SearchType
-from cognee.infrastructure.databases.graph import get_graph_engine
-from cognee.modules.engine.models import NodeSet
-from cognee.modules.engine.operations.setup import setup as cognee_setup
-from cognee.tasks.storage import add_data_points
+from openai import AsyncOpenAI
 
 from src import telemetry
-from src.memory.models import Buyer, Listing, Neighbourhood, Realtor, Showing
+from src.core.config import config
 
-_configured = False
-_setup_done = False
-
-
-def _pg_url() -> str:
-    user = os.getenv("DB_USERNAME") or os.getenv("DB_USER", "postgres")
-    password = os.getenv("DB_PASSWORD", "postgres")
-    host = os.getenv("DB_HOST", "localhost")
-    port = os.getenv("DB_PORT", "5432")
-    name = os.getenv("COGNEE_DB_NAME", "cognee_db")
-    return f"postgresql://{user}:{password}@{host}:{port}/{name}"
+T = TypeVar("T")
+_pool: asyncpg.Pool | None = None
+_pool_lock = asyncio.Lock()
+_EMBEDDING_MODEL = os.getenv("MEMORY_EMBEDDING_MODEL", "text-embedding-3-small")
+_EMBEDDING_DIMENSIONS = int(os.getenv("MEMORY_EMBEDDING_DIMENSIONS", "1536"))
+_embed_cache: OrderedDict[str, list[float]] = OrderedDict()
+_embed_lock = asyncio.Lock()
+_embed_slots = asyncio.Semaphore(int(os.getenv("MEMORY_EMBEDDING_CONCURRENCY", "4")))
 
 
-async def _ensure_cognee_db() -> None:
-    """Create the dedicated Cognee database and the pgvector extension if missing.
-
-    Cognee is isolated in its own database so its tables (it creates a 'users' table for
-    access control, among others) never collide with the operational schema.
-    """
-    name = os.getenv("COGNEE_DB_NAME", "cognee_db")
-    user = os.getenv("DB_USERNAME") or os.getenv("DB_USER") or "postgres"
-    password = os.getenv("DB_PASSWORD", "postgres")
-    host = os.getenv("DB_HOST", "localhost")
-    port = int(os.getenv("DB_PORT", "5432"))
-    admin = await asyncpg.connect(
-        user=user, password=password, host=host, port=port, database="postgres"
-    )
-    try:
-        exists = await admin.fetchval(
-            "SELECT 1 FROM pg_database WHERE datname = $1", name
-        )
-        if not exists:
-            try:
-                await admin.execute(f'CREATE DATABASE "{name}"')
-            except (
-                asyncpg.exceptions.DuplicateDatabaseError,
-                asyncpg.exceptions.UniqueViolationError,
-            ):
-                # Cold-start race: several requests all saw "not exists" and raced to
-                # CREATE DATABASE. One wins; the rest land here. The db exists now, so
-                # this is success, not an error to 500 on.
-                pass
-    finally:
-        await admin.close()
-    db = await asyncpg.connect(
-        user=user, password=password, host=host, port=port, database=name
-    )
-    try:
-        await db.execute("CREATE EXTENSION IF NOT EXISTS vector")
-    finally:
-        await db.close()
+def _database_url() -> str:
+    """Return an asyncpg-compatible CockroachDB/PostgreSQL wire URL."""
+    url = config.DATABASE_URL or config.SQLALCHEMY_DATABASE_URI
+    parts = urlsplit(url)
+    query = [(k, v) for k, v in parse_qsl(parts.query) if k != "channel_binding"]
+    return urlunsplit(("postgresql", parts.netloc, parts.path, urlencode(query), ""))
 
 
-def configure_cognee() -> None:
-    """Point Cognee at Neo4j + pgvector + OpenAI. Idempotent."""
-    global _configured
-    if _configured:
-        return
-
-    api_key = os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY")
-    if api_key:
-        cognee.config.set_llm_api_key(api_key)
-    # Single-realtor demo: no multi-user access control (Cognee 1.x default is on).
-    os.environ.setdefault("ENABLE_BACKEND_ACCESS_CONTROL", "false")
-
-    cognee.config.set_graph_database_provider(
-        os.getenv("GRAPH_DATABASE_PROVIDER", "neo4j")
-    )
-    try:
-        cognee.config.set_graph_db_config(
-            {
-                "graph_database_provider": os.getenv(
-                    "GRAPH_DATABASE_PROVIDER", "neo4j"
-                ),
-                "graph_database_url": os.getenv(
-                    "GRAPH_DATABASE_URL", "bolt://localhost:7687"
-                ),
-                "graph_database_name": os.getenv("GRAPH_DATABASE_NAME", "neo4j"),
-                "graph_database_username": os.getenv(
-                    "GRAPH_DATABASE_USERNAME", "neo4j"
-                ),
-                "graph_database_password": os.getenv(
-                    "GRAPH_DATABASE_PASSWORD", "neo4jpassword"
-                ),
-            }
-        )
-    except Exception:
-        # Env vars cover the same config if the dict keys differ across Cognee versions.
-        pass
-
-    cognee.config.set_vector_db_provider("pgvector")
-    cognee.config.set_vector_db_url(_pg_url())
-    try:
-        cognee.config.set_relational_db_config(
-            {
-                "db_provider": "postgres",
-                "db_name": os.getenv("COGNEE_DB_NAME", "cognee_db"),
-                "db_host": os.getenv("DB_HOST", "localhost"),
-                "db_port": os.getenv("DB_PORT", "5432"),
-                "db_username": os.getenv("DB_USERNAME")
-                or os.getenv("DB_USER")
-                or "postgres",
-                "db_password": os.getenv("DB_PASSWORD", "postgres"),
-            }
-        )
-    except Exception:
-        pass
-
-    _configured = True
+async def get_memory_pool() -> asyncpg.Pool:
+    global _pool
+    if _pool is None:
+        async with _pool_lock:
+            if _pool is None:
+                _pool = await asyncpg.create_pool(
+                    _database_url(),
+                    min_size=int(os.getenv("DB_POOL_MIN_SIZE", "1")),
+                    max_size=int(os.getenv("DB_POOL_MAX_SIZE", "8")),
+                    max_inactive_connection_lifetime=300,
+                    command_timeout=30,
+                    server_settings={"application_name": "superreality-memory"},
+                )
+    return _pool
 
 
-async def ensure_cognee() -> None:
-    """Configure Cognee and run its one-time setup (system tables + default user)."""
-    global _setup_done
-    configure_cognee()
-    if not _setup_done:
-        await _ensure_cognee_db()
-        await cognee_setup()
-        _setup_done = True
+async def close_memory_pool() -> None:
+    global _pool
+    if _pool is not None:
+        await _pool.close()
+        _pool = None
 
 
-def tenant_tag(tenant_id: str) -> str:
-    """The NodeSet name that scopes every graph node to one realtor (tenant). Recall and
-    buyer-matching search only within this set, so one realtor never sees another's data.
-    """
-    return f"tenant_{tenant_id}"
+async def _retry_transaction(
+    operation: Callable[[asyncpg.Connection], Awaitable[T]],
+) -> T:
+    """Retry CockroachDB serialization conflicts without duplicating application logic."""
+    pool = await get_memory_pool()
+    for attempt in range(5):
+        try:
+            async with pool.acquire() as connection, connection.transaction():
+                return await operation(connection)
+        except asyncpg.PostgresError as exc:
+            if exc.sqlstate != "40001" or attempt == 4:
+                raise
+        await asyncio.sleep((0.025 * (2**attempt)) + random.random() * 0.025)
+    raise RuntimeError("unreachable")
 
 
-def _tenant_nodeset(tenant_id: str) -> NodeSet:
-    """A stable NodeSet for the tenant: typed nodes are tagged with it on write, and search
-    filters by it on read. The id is derived from the name so every write reuses one set.
-    """
-    name = tenant_tag(tenant_id)
-    return NodeSet(id=uuid5(NAMESPACE_OID, name=name), name=name)
-
-
-def _neighbourhood(tenant_id: str, name: str, city: str | None = None) -> Neighbourhood:
-    """A tenant's neighbourhood as one stable graph node, keyed by tenant + name. Every listing
-    and buyer in the same area references this same node (not a fresh duplicate each time), so
-    they connect into one graph: Buyer -> Neighbourhood <- Listing <- Realtor.
-    """
-    key = f"tenant_{tenant_id}_neighbourhood_{name.strip().lower()}"
-    hood = Neighbourhood(id=uuid5(NAMESPACE_OID, key), name=name, city=city)
-    hood.belongs_to_set = [_tenant_nodeset(tenant_id)]
-    return hood
-
-
-def listings_dataset(tenant_id: str) -> str:
-    """The tenant's listings dataset (the buyer text flow and improve are dataset-scoped)."""
-    return f"tenant_{tenant_id}_listings"
+def normalize_phone(phone: str | None) -> str:
+    return re.sub(r"\D", "", phone or "")
 
 
 def buyer_dataset(tenant_id: str, phone: str) -> str:
-    """Each buyer gets its own per-tenant dataset so forget removes exactly that buyer and a
-    shared phone number never collides across realtors.
-    """
-    digits = re.sub(r"\D", "", phone or "")
-    return f"tenant_{tenant_id}_buyer_{digits}"
+    """Compatibility key retained for callers; now maps to a CockroachDB memory key."""
+    return f"tenant_{tenant_id}_buyer_{normalize_phone(phone)}"
 
 
-def _criteria_to_text(criteria: dict[str, Any]) -> str:
-    parts: list[str] = []
-    if criteria.get("area"):
-        parts.append(f"in {criteria['area']}")
-    if criteria.get("maxPrice"):
-        parts.append(f"under {criteria['maxPrice']}")
-    if criteria.get("minBeds"):
-        parts.append(f"at least {criteria['minBeds']} bedrooms")
-    want = ", ".join(parts) if parts else "any home"
-    return f"Which connected listings match a buyer looking for {want}?"
+def _listing_text(item: dict[str, Any]) -> str:
+    fields = [
+        item.get("code"),
+        item.get("address"),
+        item.get("area") or item.get("neighbourhood"),
+        item.get("city"),
+        f"{item.get('beds')} bedrooms" if item.get("beds") is not None else None,
+        f"{item.get('baths')} bathrooms" if item.get("baths") is not None else None,
+        f"price {item.get('price')}" if item.get("price") is not None else None,
+        item.get("description"),
+    ]
+    return ". ".join(str(value) for value in fields if value)
 
 
-def _buyer_to_text(buyer: dict[str, Any]) -> str:
-    name = buyer.get("name") or "A buyer"
-    return f"{name} (phone {buyer.get('phone')}) is a buyer. Criteria: {buyer.get('criteria') or {}}."
+def _buyer_text(buyer: dict[str, Any]) -> str:
+    return (
+        f"Buyer {buyer.get('name') or 'unknown'}, phone {buyer.get('phone')}. "
+        f"Preferences: {json.dumps(buyer.get('criteria') or {}, sort_keys=True)}. "
+        f"{buyer.get('summary') or ''}"
+    ).strip()
 
 
-def _as_int(value: Any) -> int | None:
-    try:
-        return int(float(value))
-    except (TypeError, ValueError):
+def _vector_literal(vector: list[float]) -> str:
+    return "[" + ",".join(f"{value:.8g}" for value in vector) + "]"
+
+
+async def _embed(text: str, *, tenant_id: str) -> list[float] | None:
+    """Embed once, cache repeated catalog text, and meter the OpenAI usage explicitly."""
+    if not text.strip() or not os.getenv("OPENAI_API_KEY"):
         return None
+    key = hashlib.sha256(f"{_EMBEDDING_MODEL}\0{text}".encode()).hexdigest()
+    async with _embed_lock:
+        cached = _embed_cache.get(key)
+        if cached is not None:
+            _embed_cache.move_to_end(key)
+            return cached
+    async with _embed_slots:
+        response = await AsyncOpenAI().embeddings.create(
+            model=_EMBEDDING_MODEL,
+            input=text,
+            dimensions=_EMBEDDING_DIMENSIONS,
+        )
+    vector = response.data[0].embedding
+    async with _embed_lock:
+        _embed_cache[key] = vector
+        _embed_cache.move_to_end(key)
+        while len(_embed_cache) > 1024:
+            _embed_cache.popitem(last=False)
+    usage = response.usage
+    await telemetry.record_llm_usage(
+        model=_EMBEDDING_MODEL,
+        prompt_tokens=float(usage.prompt_tokens if usage else 0),
+        operation="cockroach.memory.embedding",
+        kind="embedding",
+        tenant_id=tenant_id,
+    )
+    return vector
 
 
-def _as_float(value: Any) -> float | None:
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def _as_json(value: Any) -> Any:
-    if value in (None, ""):
-        return None
-    if isinstance(value, dict | list):
-        return value
-    try:
-        return json.loads(value)
-    except (TypeError, ValueError):
-        return None
+def _record(row: asyncpg.Record) -> dict[str, Any]:
+    value = dict(row)
+    for key in ("criteria", "metadata"):
+        if isinstance(value.get(key), str):
+            value[key] = json.loads(value[key])
+    return value
 
 
 class MemoryStore:
-    """The realty memory: listings and buyers, backed by Cognee.
+    """Tenant-isolated agent memory in CockroachDB."""
 
-    Every operation is scoped to a tenant (the realtor's Clerk org). Typed graph nodes are
-    tagged with the tenant's NodeSet on write and search filters by it on read, and the
-    per-buyer text datasets are namespaced by tenant, so one realtor's listings and buyers
-    are never visible to another's.
-    """
-
-    @telemetry.track("cognee.add_listings")
+    @telemetry.track("cockroach.memory.add_listings")
     async def add_listings(
         self, tenant_id: str, realtor: dict[str, Any], listings: list[dict[str, Any]]
     ) -> list[dict[str, Any]]:
-        """Add a realtor and their listings as typed graph nodes, tagged with the tenant's
-        NodeSet so recall and matching stay scoped to this realtor.
-        """
-        await ensure_cognee()
-        nodeset = _tenant_nodeset(tenant_id)
-        realtor_node = Realtor(
-            name=realtor["name"],
-            email=realtor.get("email"),
-            agency=realtor.get("agency"),
-            area=realtor.get("area"),
-            tagline=realtor.get("tagline"),
-            tone=realtor.get("tone"),
-        )
-        points: list[Any] = [realtor_node]
-        represented: list[Any] = []
-        for item in listings:
-            hood = None
-            area = item.get("area") or item.get("neighbourhood")
-            if area:
-                hood = _neighbourhood(tenant_id, str(area), item.get("city"))
-                points.append(hood)
-            listing = Listing(
-                code=item["code"],
-                address=item["address"],
-                price=item.get("price"),
-                beds=item.get("beds"),
-                baths=item.get("baths"),
-                sqft=item.get("sqft"),
-                description=item.get("description"),
-                image_url=item.get("image_url"),
-                located_in=hood,
+        async def write_realtor(conn: asyncpg.Connection) -> None:
+            await conn.execute(
+                """INSERT INTO memory_realtors
+                   (tenant_id, name, email, agency, area, tagline, tone, updated_at)
+                   VALUES ($1,$2,$3,$4,$5,$6,$7,now())
+                   ON CONFLICT (tenant_id) DO UPDATE SET name=excluded.name,
+                   email=excluded.email, agency=excluded.agency, area=excluded.area,
+                   tagline=excluded.tagline, tone=excluded.tone, updated_at=now()""",
+                tenant_id,
+                realtor["name"],
+                realtor.get("email"),
+                realtor.get("agency"),
+                realtor.get("area"),
+                realtor.get("tagline"),
+                realtor.get("tone"),
             )
-            listing.belongs_to_set = [nodeset]
-            points.append(listing)
-            represented.append(listing)
-        realtor_node.represents = represented
-        realtor_node.belongs_to_set = [nodeset]
-        await add_data_points(points)
+
+        await _retry_transaction(write_realtor)
+        await asyncio.gather(
+            *(self.add_single_listing(tenant_id, item) for item in listings)
+        )
         return listings
 
-    @telemetry.track("cognee.add_listing")
+    @telemetry.track("cockroach.memory.add_listing")
     async def add_single_listing(
         self, tenant_id: str, item: dict[str, Any]
     ) -> dict[str, Any]:
-        """Add one home straight to the realtor's live catalog (a manual console add).
+        content = _listing_text(item)
+        vector = await _embed(content, tenant_id=tenant_id)
 
-        Tagged with the tenant NodeSet and linked to its neighbourhood (the same stable node the
-        existing listings use), so it joins the graph and the buyer-match search picks it up. No
-        new Realtor node is created: it attaches through the shared neighbourhood instead.
-        """
-        await ensure_cognee()
-        nodeset = _tenant_nodeset(tenant_id)
-        points: list[Any] = []
-        hood = None
-        area = item.get("area") or item.get("neighbourhood")
-        if area:
-            hood = _neighbourhood(tenant_id, str(area), item.get("city"))
-            points.append(hood)
-        listing = Listing(
-            code=item["code"],
-            address=item["address"],
-            price=item.get("price"),
-            beds=item.get("beds"),
-            baths=item.get("baths"),
-            sqft=item.get("sqft"),
-            description=item.get("description"),
-            image_url=item.get("image_url"),
-            located_in=hood,
-        )
-        listing.belongs_to_set = [nodeset]
-        points.append(listing)
-        await add_data_points(points)
+        async def write(conn: asyncpg.Connection) -> None:
+            await conn.execute(
+                """INSERT INTO memory_listings
+                   (tenant_id, code, address, price, beds, baths, sqft, description,
+                    image_url, area, city, content, embedding, updated_at)
+                   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::VECTOR,now())
+                   ON CONFLICT (tenant_id, code) DO UPDATE SET address=excluded.address,
+                   price=excluded.price, beds=excluded.beds, baths=excluded.baths,
+                   sqft=excluded.sqft, description=excluded.description,
+                   image_url=excluded.image_url, area=excluded.area, city=excluded.city,
+                   content=excluded.content, embedding=excluded.embedding, updated_at=now()""",
+                tenant_id,
+                item["code"],
+                item["address"],
+                item.get("price"),
+                item.get("beds"),
+                item.get("baths"),
+                item.get("sqft"),
+                item.get("description"),
+                item.get("image_url"),
+                item.get("area") or item.get("neighbourhood"),
+                item.get("city"),
+                content,
+                _vector_literal(vector) if vector else None,
+            )
+
+        await _retry_transaction(write)
         return item
 
-    @telemetry.track("cognee.recall")
+    @telemetry.track("cockroach.memory.recall")
     async def recall(
         self, tenant_id: str, criteria: dict[str, Any] | str, top_k: int = 5
     ) -> list[Any]:
-        """Recall listings matching a buyer's criteria (or a raw query), scoped to the
-        tenant's NodeSet so one realtor never sees another's listings.
-        """
-        await ensure_cognee()
-        query = criteria if isinstance(criteria, str) else _criteria_to_text(criteria)
-        results: list[Any] = await cognee.search(
-            query_text=query,
-            query_type=SearchType.GRAPH_COMPLETION,
-            node_type=NodeSet,
-            node_name=[tenant_tag(tenant_id)],
-            top_k=top_k,
-        )
-        return results
-
-    async def _nodeset_nodes(
-        self, tenant_id: str, node_type: str
-    ) -> list[dict[str, Any]]:
-        """Return the property dicts of every node of ``node_type`` in the tenant's NodeSet.
-
-        Unlike recall (an LLM completion), this is a direct graph read for enumerating a
-        realtor's own connected data (their listings, their buyers) in the console.
-        """
-        await ensure_cognee()
-        graph = await get_graph_engine()
-        nodes, _edges = await graph.get_nodeset_subgraph(
-            node_type=NodeSet, node_name=[tenant_tag(tenant_id)]
-        )
-        return [props for _id, props in nodes if props.get("type") == node_type]
+        structured = criteria if isinstance(criteria, dict) else {}
+        query = criteria if isinstance(criteria, str) else json.dumps(criteria)
+        vector = await _embed(query, tenant_id=tenant_id)
+        area = structured.get("area")
+        max_price = structured.get("maxPrice")
+        min_beds = structured.get("minBeds")
+        pool = await get_memory_pool()
+        async with pool.acquire() as conn:
+            if vector:
+                rows = await conn.fetch(
+                    """SELECT code,address,price,beds,baths,sqft,description,image_url,area,city
+                       FROM memory_listings
+                       WHERE tenant_id=$1 AND ($2::STRING IS NULL OR lower(area) LIKE '%'||lower($2)||'%')
+                         AND ($3::DECIMAL IS NULL OR price <= $3)
+                         AND ($4::INT IS NULL OR beds >= $4) AND embedding IS NOT NULL
+                       ORDER BY embedding <-> $5::VECTOR LIMIT $6""",
+                    tenant_id,
+                    area,
+                    max_price,
+                    min_beds,
+                    _vector_literal(vector),
+                    top_k,
+                )
+            else:
+                rows = await conn.fetch(
+                    """SELECT code,address,price,beds,baths,sqft,description,image_url,area,city
+                       FROM memory_listings WHERE tenant_id=$1
+                       AND ($2::STRING IS NULL OR lower(area) LIKE '%'||lower($2)||'%')
+                       AND ($3::DECIMAL IS NULL OR price <= $3)
+                       AND ($4::INT IS NULL OR beds >= $4)
+                       ORDER BY updated_at DESC LIMIT $5""",
+                    tenant_id,
+                    area,
+                    max_price,
+                    min_beds,
+                    top_k,
+                )
+        return [_record(row) for row in rows]
 
     async def list_listings(self, tenant_id: str) -> list[dict[str, Any]]:
-        """Every connected listing for the realtor, newest first. Values come back from the
-        graph as strings, so numbers are coerced; deduped by code/address.
-        """
-        seen: set[str] = set()
-        out: list[dict[str, Any]] = []
-        rows = await self._nodeset_nodes(tenant_id, "Listing")
-        rows.sort(key=lambda p: str(p.get("created_at") or ""), reverse=True)
-        for props in rows:
-            key = str(props.get("code") or props.get("address") or props.get("id"))
-            if key in seen:
-                continue
-            seen.add(key)
-            out.append(
-                {
-                    "code": props.get("code"),
-                    "address": props.get("address"),
-                    "price": _as_float(props.get("price")),
-                    "beds": _as_int(props.get("beds")),
-                    "baths": _as_float(props.get("baths")),
-                    "sqft": _as_int(props.get("sqft")),
-                    "description": props.get("description"),
-                    "image_url": props.get("image_url"),
-                }
+        pool = await get_memory_pool()
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """SELECT code,address,price,beds,baths,sqft,description,image_url,area,city
+                   FROM memory_listings WHERE tenant_id=$1 ORDER BY updated_at DESC""",
+                tenant_id,
             )
-        return out
+        return [_record(row) for row in rows]
 
     async def get_realtor(self, tenant_id: str) -> dict[str, Any] | None:
-        """The realtor's own persona (name + the agency/area/tagline/tone inferred from their
-        site), newest first. The live voice agent reads this to answer in their name and voice.
-        Graph values come back as strings, which is exactly what the persona fields are.
-        """
-        rows = await self._nodeset_nodes(tenant_id, "Realtor")
-        if not rows:
-            return None
-        rows.sort(key=lambda p: str(p.get("created_at") or ""), reverse=True)
-        props = rows[0]
-        return {
-            "name": props.get("name"),
-            "agency": props.get("agency"),
-            "area": props.get("area"),
-            "tagline": props.get("tagline"),
-            "tone": props.get("tone"),
-        }
+        pool = await get_memory_pool()
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT name,agency,area,tagline,tone FROM memory_realtors WHERE tenant_id=$1",
+                tenant_id,
+            )
+        return _record(row) if row else None
 
     async def list_buyers(self, tenant_id: str) -> list[dict[str, Any]]:
-        """Every remembered buyer for the realtor, newest first, deduped by phone."""
-        seen: set[str] = set()
-        out: list[dict[str, Any]] = []
-        rows = await self._nodeset_nodes(tenant_id, "Buyer")
-        rows.sort(key=lambda p: str(p.get("created_at") or ""), reverse=True)
-        for props in rows:
-            phone = props.get("phone")
-            key = str(phone or props.get("id"))
-            if key in seen:
-                continue
-            seen.add(key)
-            out.append(
-                {
-                    "phone": phone,
-                    "name": props.get("name"),
-                    "email": props.get("email"),
-                    "criteria": _as_json(props.get("criteria")),
-                }
+        pool = await get_memory_pool()
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """SELECT phone,name,email,criteria,summary FROM memory_buyers
+                   WHERE tenant_id=$1 ORDER BY updated_at DESC""",
+                tenant_id,
             )
-        return out
+        return [_record(row) for row in rows]
 
-    @telemetry.track("cognee.match")
+    @telemetry.track("cockroach.memory.match")
     async def match_buyers(self, tenant_id: str, listing: dict[str, Any]) -> str:
-        """Find buyers whose stated criteria match a (newly added) listing, with which of
-        their wishes it meets. Scoped to this tenant's NodeSet (typed Buyer + Listing nodes).
-        """
-        await ensure_cognee()
-        parts: list[str] = []
-        if listing.get("area"):
-            parts.append(f"in {listing['area']}")
-        if listing.get("beds"):
-            parts.append(f"{listing['beds']} bedrooms")
-        if listing.get("price"):
-            parts.append(f"around {listing['price']}")
-        desc = ", ".join(parts) if parts else "this home"
-        query = (
-            f"A new home is available ({desc}). Which remembered buyers are looking for a "
-            "home like this? Name each matching buyer and which of their wishes it meets."
+        vector = await _embed(_listing_text(listing), tenant_id=tenant_id)
+        pool = await get_memory_pool()
+        async with pool.acquire() as conn:
+            if vector:
+                rows = await conn.fetch(
+                    """SELECT name,phone,criteria FROM memory_buyers WHERE tenant_id=$1
+                       AND embedding IS NOT NULL ORDER BY embedding <-> $2::VECTOR LIMIT 5""",
+                    tenant_id,
+                    _vector_literal(vector),
+                )
+            else:
+                rows = await conn.fetch(
+                    "SELECT name,phone,criteria FROM memory_buyers WHERE tenant_id=$1 LIMIT 5",
+                    tenant_id,
+                )
+        matches = [_record(row) for row in rows]
+        return "; ".join(
+            f"{buyer.get('name') or buyer['phone']} matches preferences {buyer.get('criteria') or {}}"
+            for buyer in matches
         )
-        results: list[Any] = await cognee.search(
-            query_text=query,
-            query_type=SearchType.GRAPH_COMPLETION,
-            node_type=NodeSet,
-            node_name=[tenant_tag(tenant_id)],
-            top_k=5,
-        )
-        return str(results[0]) if results else ""
 
-    @telemetry.track("cognee.upsert_buyer")
+    @telemetry.track("cockroach.memory.upsert_buyer")
     async def upsert_buyer(
         self, tenant_id: str, buyer: dict[str, Any]
     ) -> dict[str, Any]:
-        """Remember (or update) a buyer: a typed Buyer node plus a per-buyer, per-tenant
-        dataset so forget removes exactly them and a return call can recall them.
-        """
-        await ensure_cognee()
-        nodeset = _tenant_nodeset(tenant_id)
-        node = Buyer(
-            phone=buyer["phone"],
-            name=buyer.get("name"),
-            email=buyer.get("email"),
-            criteria=buyer.get("criteria"),
-        )
-        node.belongs_to_set = [nodeset]
-        points: list[Any] = [node]
-        # Attach the buyer to the neighbourhood they want (from their criteria area), reusing the
-        # same stable Neighbourhood node the listings sit in, so the buyer joins the graph.
-        area = (buyer.get("criteria") or {}).get("area")
-        if area:
-            hood = _neighbourhood(tenant_id, str(area))
-            node.wants_in = hood
-            points.append(hood)
-        await add_data_points(points)
-        # Keep a per-buyer, per-tenant dataset (cognified so it is searchable) so forget_buyer
-        # removes exactly this buyer and get_buyer can recall them on a return call. node_set
-        # tags the cognified text too, so a shared phone never crosses tenants. Skip this when
-        # the phone has no digits, so phoneless buyers never collapse into one shared
-        # tenant_{tid}_buyer_ dataset (forget would otherwise wipe them all).
-        if re.sub(r"\D", "", buyer["phone"] or ""):
-            dataset = buyer_dataset(tenant_id, buyer["phone"])
-            await cognee.add(
-                _buyer_to_text(buyer),
-                dataset_name=dataset,
-                node_set=[tenant_tag(tenant_id)],
+        phone_key = normalize_phone(buyer["phone"])
+        if not phone_key:
+            raise ValueError("buyer phone must contain digits")
+        content = _buyer_text(buyer)
+        vector = await _embed(content, tenant_id=tenant_id)
+
+        async def write(conn: asyncpg.Connection) -> None:
+            await conn.execute(
+                """INSERT INTO memory_buyers
+                   (tenant_id,phone_key,phone,name,email,criteria,summary,content,embedding,updated_at)
+                   VALUES ($1,$2,$3,$4,$5,$6::JSONB,$7,$8,$9::VECTOR,now())
+                   ON CONFLICT (tenant_id,phone_key) DO UPDATE SET phone=excluded.phone,
+                   name=coalesce(excluded.name,memory_buyers.name),
+                   email=coalesce(excluded.email,memory_buyers.email),
+                   criteria=excluded.criteria, summary=coalesce(excluded.summary,memory_buyers.summary),
+                   content=excluded.content, embedding=excluded.embedding, updated_at=now()""",
+                tenant_id,
+                phone_key,
+                buyer["phone"],
+                buyer.get("name"),
+                buyer.get("email"),
+                json.dumps(buyer.get("criteria") or {}),
+                buyer.get("summary"),
+                content,
+                _vector_literal(vector) if vector else None,
             )
-            await cognee.cognify(datasets=[dataset])
+
+        await _retry_transaction(write)
         return buyer
 
-    @telemetry.track("cognee.get_buyer")
+    @telemetry.track("cockroach.memory.get_buyer")
     async def get_buyer(self, tenant_id: str, phone: str) -> dict[str, Any]:
-        """Recall a returning buyer by phone: name, prior criteria, homes discussed.
-
-        Searches only the buyer's own per-tenant dataset. Always returns a dict; found=False
-        means a new (or forgotten) buyer.
-        """
-        await ensure_cognee()
-        dataset = buyer_dataset(tenant_id, phone)
-        try:
-            results = await cognee.search(
-                query_text=(
-                    "Summarize this returning buyer: their name, their stated criteria "
-                    "(area, budget, bedrooms), and any homes they discussed."
-                ),
-                query_type=SearchType.GRAPH_COMPLETION,
-                datasets=[dataset],
-                top_k=5,
+        pool = await get_memory_pool()
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """SELECT phone,name,email,criteria,summary FROM memory_buyers
+                   WHERE tenant_id=$1 AND phone_key=$2""",
+                tenant_id,
+                normalize_phone(phone),
             )
-        except Exception:  # noqa: BLE001  (unknown/forgotten buyer -> not found)
-            results = []
-        if not results:
+        if not row:
             return {"found": False, "phone": phone}
-        return {"found": True, "phone": phone, "summary": str(results[0])}
+        data = _record(row)
+        summary = data.get("summary") or _buyer_text(data)
+        return {"found": True, **data, "summary": summary}
 
-    @telemetry.track("cognee.recall_nearby")
+    @telemetry.track("cockroach.memory.recall_nearby")
     async def recall_nearby(self, tenant_id: str, summary: str) -> str | None:
-        """A bounded multi-hop suggestion for a returning buyer: a newer listing near what they
-        liked (buyer -> liked listing -> neighbourhood -> nearby newer listing). Best-effort:
-        returns None on any error so it never blocks or breaks a call.
-        """
-        query = (
-            "This returning buyer previously liked a home described here: "
-            f"{summary}. Is there a different, newer connected listing in the same area or "
-            "neighbourhood they have not seen yet? If so, describe it in one short sentence. "
-            "If not, answer with nothing."
-        )
         try:
-            await ensure_cognee()
-            results = await cognee.search(
-                query_text=query,
-                query_type=SearchType.GRAPH_COMPLETION,
-                node_type=NodeSet,
-                node_name=[tenant_tag(tenant_id)],
-                top_k=3,
-            )
-        except Exception:  # noqa: BLE001  (best-effort enrichment; never break the call)
+            rows = await self.recall(tenant_id, summary, top_k=1)
+        except Exception:  # best-effort voice enrichment
             return None
-        text = str(results[0]).strip() if results else ""
-        return text or None
+        if not rows:
+            return None
+        row = rows[0]
+        return f"A nearby match is {row['address']} ({row.get('code')}), {row.get('description') or 'now available'}."
 
-    @telemetry.track("cognee.add_showing")
+    @telemetry.track("cockroach.memory.add_showing")
     async def add_showing(
         self,
         *,
@@ -543,58 +388,132 @@ class MemoryStore:
         address: str | None,
         when_utc: str,
     ) -> None:
-        """Record a booked showing: a Showing node plus a note folded into the buyer's
-        dataset so a later recall mentions it. Both are scoped to the tenant.
-        """
-        await ensure_cognee()
-        showing = Showing(when_utc=when_utc)
-        showing.belongs_to_set = [_tenant_nodeset(tenant_id)]
-        await add_data_points([showing])
-        dataset = (
-            buyer_dataset(tenant_id, phone) if phone else listings_dataset(tenant_id)
-        )
-        note = f"A showing is booked for {address or property_code} on {when_utc}"
-        note += f" for the buyer at {phone}." if phone else "."
-        await cognee.add(note, dataset_name=dataset, node_set=[tenant_tag(tenant_id)])
+        content = f"Showing booked for {address or property_code} on {when_utc}."
+        vector = await _embed(content, tenant_id=tenant_id)
+        pool = await get_memory_pool()
+        async with pool.acquire() as conn:
+            await conn.execute(
+                """INSERT INTO memory_interactions
+                   (tenant_id,buyer_phone_key,kind,content,metadata,embedding)
+                   VALUES ($1,$2,'showing',$3,$4::JSONB,$5::VECTOR)""",
+                tenant_id,
+                normalize_phone(phone),
+                content,
+                json.dumps(
+                    {
+                        "property_code": property_code,
+                        "address": address,
+                        "when_utc": when_utc,
+                    }
+                ),
+                _vector_literal(vector) if vector else None,
+            )
 
-    @telemetry.track("cognee.improve")
-    async def improve(self, tenant_id: str, phone: str | None = None) -> None:
-        """Fold the latest understanding back into memory. Scoped to the buyer's dataset when
-        a phone is given, else the tenant's listings dataset.
-        """
-        await ensure_cognee()
-        dataset = (
-            buyer_dataset(tenant_id, phone) if phone else listings_dataset(tenant_id)
+    @telemetry.track("cockroach.memory.improve")
+    async def improve(
+        self,
+        tenant_id: str,
+        phone: str | None = None,
+        *,
+        summary: str | None = None,
+        transcript: list[dict[str, Any]] | None = None,
+    ) -> None:
+        content = summary or " ".join(
+            str(turn.get("content") or turn.get("text") or "")
+            for turn in transcript or []
         )
-        await cognee.improve(dataset=dataset)
+        if not content.strip():
+            return
+        vector = await _embed(content, tenant_id=tenant_id)
+
+        async def write(conn: asyncpg.Connection) -> None:
+            await conn.execute(
+                """INSERT INTO memory_interactions
+                   (tenant_id,buyer_phone_key,kind,content,metadata,embedding)
+                   VALUES ($1,$2,'call',$3,$4::JSONB,$5::VECTOR)""",
+                tenant_id,
+                normalize_phone(phone),
+                content,
+                json.dumps({"transcript": transcript or []}),
+                _vector_literal(vector) if vector else None,
+            )
+            if phone:
+                await conn.execute(
+                    """UPDATE memory_buyers SET summary=$3,updated_at=now()
+                       WHERE tenant_id=$1 AND phone_key=$2""",
+                    tenant_id,
+                    normalize_phone(phone),
+                    content,
+                )
+
+        await _retry_transaction(write)
 
     async def forget_buyer(self, tenant_id: str, phone: str) -> dict[str, Any]:
-        """Forget a buyer by removing their per-tenant Cognee dataset exactly."""
-        await ensure_cognee()
-        result: dict[str, Any] = await cognee.forget(
-            dataset=buyer_dataset(tenant_id, phone)
-        )
-        return result
+        phone_key = normalize_phone(phone)
+
+        async def delete(conn: asyncpg.Connection) -> int:
+            await conn.execute(
+                "DELETE FROM memory_interactions WHERE tenant_id=$1 AND buyer_phone_key=$2",
+                tenant_id,
+                phone_key,
+            )
+            result = await conn.execute(
+                "DELETE FROM memory_buyers WHERE tenant_id=$1 AND phone_key=$2",
+                tenant_id,
+                phone_key,
+            )
+            await conn.execute(
+                "DELETE FROM buyer_profiles WHERE tenant_id=$1 AND regexp_replace(phone, '[^0-9]', '', 'g')=$2",
+                tenant_id,
+                phone_key,
+            )
+            return int(result.rsplit(" ", 1)[-1])
+
+        deleted = await _retry_transaction(delete)
+        return {"deleted": deleted, "phone": phone}
 
     async def reset_tenant(self, tenant_id: str) -> int:
-        """Delete every graph node in this realtor's NodeSet: their Realtor, Listings,
-        Neighbourhoods, Buyers, Showings, and the cognified chunks tagged with the set.
+        async def delete(conn: asyncpg.Connection) -> int:
+            total = 0
+            for table in (
+                "memory_interactions",
+                "memory_buyers",
+                "memory_listings",
+                "memory_realtors",
+            ):
+                result = await conn.execute(
+                    f"DELETE FROM {table} WHERE tenant_id=$1", tenant_id
+                )
+                total += int(result.rsplit(" ", 1)[-1])
+            return total
 
-        Tenant-scoped by construction: it only ever deletes node ids read back from THIS
-        tenant's NodeSet subgraph, so another realtor's data can never be touched. The stable
-        NodeSet id is recreated on the next write, so onboarding fresh listings just works.
-        Returns the number of nodes removed. Leaves orphaned vectors (harmless: they are no
-        longer in the graph the console and recall read from).
-        """
-        await ensure_cognee()
-        graph = await get_graph_engine()
-        nodes, _edges = await graph.get_nodeset_subgraph(
-            node_type=NodeSet, node_name=[tenant_tag(tenant_id)]
-        )
-        node_ids = [str(node_id) for node_id, _props in nodes]
-        if node_ids:
-            await graph.delete_nodes(node_ids)
-        return len(node_ids)
+        return await _retry_transaction(delete)
+
+    async def graph_snapshot(
+        self, tenant_id: str, cap: int = 150
+    ) -> dict[str, list[dict[str, Any]]]:
+        pool = await get_memory_pool()
+        async with pool.acquire() as conn:
+            listings = await conn.fetch(
+                "SELECT id,code,address,area,price,beds,updated_at FROM memory_listings WHERE tenant_id=$1 ORDER BY updated_at DESC LIMIT $2",
+                tenant_id,
+                cap,
+            )
+            buyers = await conn.fetch(
+                "SELECT id,phone_key,phone,name,criteria,updated_at FROM memory_buyers WHERE tenant_id=$1 ORDER BY updated_at DESC LIMIT $2",
+                tenant_id,
+                cap,
+            )
+            interactions = await conn.fetch(
+                "SELECT id,buyer_phone_key,kind,content,metadata,created_at FROM memory_interactions WHERE tenant_id=$1 ORDER BY created_at DESC LIMIT $2",
+                tenant_id,
+                cap,
+            )
+        return {
+            "listings": [_record(row) for row in listings],
+            "buyers": [_record(row) for row in buyers],
+            "interactions": [_record(row) for row in interactions],
+        }
 
 
 _store: MemoryStore | None = None

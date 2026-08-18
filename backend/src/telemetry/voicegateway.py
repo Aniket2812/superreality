@@ -73,7 +73,7 @@ def configure(sink: Any) -> None:
 
 
 def install() -> None:
-    """Build the collector from env and register the litellm capture callback. Idempotent.
+    """Build the collector from env. Idempotent.
 
     Reads ``VOICEGW_COLLECTOR_URL`` + ``VOICEGW_API_KEY`` (the same vars the agent uses). With
     no collector URL this is a no-op and ``enabled()`` stays False. Safe to call at startup.
@@ -88,7 +88,6 @@ def install() -> None:
             if url:
                 configure(_Collector(url, os.environ.get("VOICEGW_API_KEY")))
         if _sink is not None:
-            _install_litellm_callback()
             logger.info("VoiceGateway backend telemetry enabled (project=%s)", _PROJECT)
     except Exception:  # noqa: BLE001 - telemetry never blocks startup
         logger.warning(
@@ -113,8 +112,8 @@ async def aclose() -> None:
 def attribute(tenant_id: str | None, operation: str) -> Iterator[None]:
     """Scope the current context to a tenant + operation for the duration of a block.
 
-    The litellm callback and ``record_llm_usage`` read these, so any AI call made inside the
-    block is attributed to ``tenant_id``. Nestable and reset-safe.
+    ``record_llm_usage`` reads these values, so AI calls made inside the block are
+    attributed to ``tenant_id``. Nestable and reset-safe.
     """
     t1 = _tenant.set(tenant_id)
     t2 = _operation.set(operation)
@@ -126,10 +125,10 @@ def attribute(tenant_id: str | None, operation: str) -> Iterator[None]:
 
 
 def track(operation: str) -> Callable[[F], F]:
-    """Decorate an async memory op so its Cognee AI calls attribute to its ``tenant_id`` arg.
+    """Decorate an async memory op so its AI calls attribute to its ``tenant_id`` arg.
 
     Reads ``tenant_id`` from the wrapped call's bound arguments (positional or keyword) and
-    holds it in the ContextVar while the op runs, so the litellm callback sees it. A method
+    holds it in the ContextVar while the operation runs. A method
     with no ``tenant_id`` still runs; it just attributes to None.
     """
 
@@ -163,7 +162,7 @@ async def record_llm_usage(
     kind: str = "completion",
     tenant_id: str | None = None,
 ) -> None:
-    """Record one text-model call's usage (the OpenAI-SDK path litellm never sees).
+    """Record one OpenAI SDK call's usage.
 
     ``tenant_id`` defaults to the current ``attribute`` scope. Prices via voice-prices, the
     same catalog the agent rows use, so backend and voice cost are directly comparable.
@@ -176,46 +175,6 @@ async def record_llm_usage(
         kind=kind,
         operation=operation,
         tenant_id=tenant_id if tenant_id is not None else _tenant.get(),
-    )
-
-
-def _install_litellm_callback() -> None:
-    import litellm
-    from litellm.integrations.custom_logger import CustomLogger
-
-    class _VGUsageLogger(CustomLogger):
-        async def async_log_success_event(
-            self, kwargs: dict, response_obj: Any, start_time: Any, end_time: Any
-        ) -> None:
-            try:
-                await _emit_from_litellm(kwargs, response_obj)
-            except Exception:  # noqa: BLE001 - a telemetry miss never fails a Cognee call
-                logger.debug("telemetry: litellm capture failed", exc_info=True)
-
-    # Idempotent: only add our logger once, even if install() somehow runs twice.
-    if not any(isinstance(cb, _VGUsageLogger) for cb in litellm.callbacks):
-        litellm.callbacks.append(_VGUsageLogger())
-
-
-async def _emit_from_litellm(kwargs: dict, response_obj: Any) -> None:
-    """Map a litellm success event (Cognee's completions + embeddings) to a usage record."""
-    usage = getattr(response_obj, "usage", None)
-    prompt = float(getattr(usage, "prompt_tokens", 0) or 0)
-    completion = float(getattr(usage, "completion_tokens", 0) or 0)
-    if prompt <= 0 and completion <= 0:
-        return  # nothing metered (e.g. a cache hit) -> skip
-    call_type = str(kwargs.get("call_type") or "").lower()
-    provider = kwargs.get("custom_llm_provider") or (
-        kwargs.get("litellm_params") or {}
-    ).get("custom_llm_provider")
-    await _emit(
-        model=str(kwargs.get("model") or ""),
-        provider=provider,
-        prompt_tokens=prompt,
-        completion_tokens=completion,
-        kind="embedding" if "embed" in call_type else "completion",
-        operation=_operation.get() or "cognee",
-        tenant_id=_tenant.get(),
     )
 
 

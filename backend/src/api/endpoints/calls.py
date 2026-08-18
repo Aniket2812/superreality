@@ -37,7 +37,10 @@ async def close_call(
     if tenant_id and payload.buyer_phone:
         try:
             await get_memory_store().improve(
-                tenant_id=tenant_id, phone=payload.buyer_phone
+                tenant_id=tenant_id,
+                phone=payload.buyer_phone,
+                summary=payload.summary,
+                transcript=payload.transcript,
             )
         except Exception as exc:  # noqa: BLE001
             logger.warning("improve on call close failed: %s", exc)

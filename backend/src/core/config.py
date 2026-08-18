@@ -26,18 +26,18 @@ _MIN_JWT_SECRET_LEN = 32
 
 
 def _to_async_url(url: str) -> str:
-    """Coerce a Postgres URL to the asyncpg driver and drop libpq-only query
+    """Coerce a PostgreSQL-wire URL to the CockroachDB asyncpg dialect and drop libpq-only
     params (sslmode, channel_binding) that asyncpg rejects.
 
-    Lets you paste a managed-Postgres URL (Neon/Supabase) verbatim, e.g.
+    Lets you paste a CockroachDB Cloud connection URL verbatim, e.g.
     ``postgresql://u:p@host/db?sslmode=require`` ->
-    ``postgresql+asyncpg://u:p@host/db``.
+    ``cockroachdb+asyncpg://u:p@host/db``.
     """
     parts = urlsplit(url)
     base_scheme = parts.scheme.split("+", 1)[0]
     scheme = (
-        "postgresql+asyncpg"
-        if base_scheme in {"postgres", "postgresql"}
+        "cockroachdb+asyncpg"
+        if base_scheme in {"cockroachdb", "postgres", "postgresql"}
         else parts.scheme
     )
     query = [
@@ -137,7 +137,7 @@ class Config(BaseSettings):
 
         db_password = quote_plus(self.DB_PASSWORD.get_secret_value())
         return (
-            f"postgresql+asyncpg://{quote_plus(self.DB_USER)}:{db_password}@"
+            f"cockroachdb+asyncpg://{quote_plus(self.DB_USER)}:{db_password}@"
             f"{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
         )
 
