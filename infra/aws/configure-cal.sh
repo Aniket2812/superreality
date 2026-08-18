@@ -31,6 +31,8 @@ def request(method, path, version, body=None):
             "Authorization": f"Bearer {key}",
             "cal-api-version": version,
             "Content-Type": "application/json",
+            # Cal's Cloudflare edge rejects Python's default urllib fingerprint (1010).
+            "User-Agent": "wondering-calendar/1.0",
         },
     )
     try:

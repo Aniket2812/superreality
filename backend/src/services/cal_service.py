@@ -19,6 +19,7 @@ CAL_BASE_URL = "https://api.cal.com/v2"
 # Version-pinned; omitting these silently routes to an older, incompatible handler.
 CAL_API_VERSION_BOOKINGS = "2026-02-25"
 CAL_API_VERSION_SLOTS = "2024-09-04"
+CAL_USER_AGENT = "wondering-calendar/1.0"
 
 
 def _to_utc_z(start_iso: str, tz_name: str) -> str:
@@ -70,6 +71,7 @@ async def get_available_slots(
     headers = {
         "Authorization": f"Bearer {api_key}",
         "cal-api-version": CAL_API_VERSION_SLOTS,
+        "User-Agent": CAL_USER_AGENT,
     }
     params: dict[str, str | int] = {
         "eventTypeId": event_type_id,
@@ -137,6 +139,7 @@ async def create_showing_booking(
         "Authorization": f"Bearer {api_key}",
         "cal-api-version": CAL_API_VERSION_BOOKINGS,
         "Content-Type": "application/json",
+        "User-Agent": CAL_USER_AGENT,
     }
     async with httpx.AsyncClient(timeout=20.0, transport=transport) as client:
         resp = await client.post(

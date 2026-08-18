@@ -7,6 +7,7 @@ async def test_get_available_slots_parses_days():
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/v2/slots"
         assert request.url.params["eventTypeId"] == "123"
+        assert request.headers["user-agent"] == "wondering-calendar/1.0"
         return httpx.Response(
             200,
             json={"data": {"2026-07-01": [{"start": "2026-07-01T13:00:00.000Z"}]}},
@@ -29,6 +30,7 @@ async def test_create_showing_booking_posts_request_and_parses():
     def handler(request: httpx.Request) -> httpx.Response:
         seen["path"] = request.url.path
         seen["body"] = request.read().decode()
+        seen["user_agent"] = request.headers["user-agent"]
         return httpx.Response(
             201,
             json={
@@ -55,6 +57,7 @@ async def test_create_showing_booking_posts_request_and_parses():
         transport=httpx.MockTransport(handler),
     )
     assert seen["path"] == "/v2/bookings"
+    assert seen["user_agent"] == "wondering-calendar/1.0"
     assert cal_service.CAL_API_VERSION_BOOKINGS == "2026-02-25"
     assert "123 Maple St, Sarnia" in seen["body"]
     assert "dana@example.com" in seen["body"]
