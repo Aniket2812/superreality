@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { StartFreeButton } from "@/components/marketing/start-free-button";
+import { clerkEnabled } from "@/lib/clerk-config";
 
 // Slim public chrome for the marketing landing and the buyer call page. The realtor console
 // has its own left-sidebar layout (DashboardShell); a signed-in realtor gets a shortcut in.
@@ -19,22 +20,30 @@ export function AppShell() {
             </span>
           </NavLink>
           <div className="ml-auto flex items-center gap-2">
-            <SignedIn>
-              <Button asChild size="sm" variant="outline">
-                <Link to="/overview">
-                  Dashboard <ArrowRight className="size-3.5" />
-                </Link>
+            {clerkEnabled ? (
+              <>
+                <SignedIn>
+                  <Button asChild size="sm" variant="outline">
+                    <Link to="/overview">
+                      Dashboard <ArrowRight className="size-3.5" />
+                    </Link>
+                  </Button>
+                  <UserButton />
+                </SignedIn>
+                <SignedOut>
+                  <SignInButton mode="modal">
+                    <Button size="sm" variant="ghost">
+                      Sign in
+                    </Button>
+                  </SignInButton>
+                  <StartFreeButton size="sm" />
+                </SignedOut>
+              </>
+            ) : (
+              <Button asChild size="sm">
+                <Link to="/call/demo">Try voice demo</Link>
               </Button>
-              <UserButton />
-            </SignedIn>
-            <SignedOut>
-              <SignInButton mode="modal">
-                <Button size="sm" variant="ghost">
-                  Sign in
-                </Button>
-              </SignInButton>
-              <StartFreeButton size="sm" />
-            </SignedOut>
+            )}
             <ThemeToggle />
           </div>
         </div>

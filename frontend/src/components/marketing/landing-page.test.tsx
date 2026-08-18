@@ -6,6 +6,7 @@ import { expect, test, vi } from "vitest";
 vi.mock("@clerk/clerk-react", () => ({
   SignUpButton: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
+vi.mock("@/lib/clerk-config", () => ({ clerkEnabled: true }));
 
 import LandingPage from "@/components/marketing/landing-page";
 

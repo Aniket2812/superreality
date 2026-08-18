@@ -1,6 +1,8 @@
 import type { ComponentProps } from "react";
 import { SignUpButton } from "@clerk/clerk-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { clerkEnabled } from "@/lib/clerk-config";
 
 // The single swap point for the primary conversion action. Today it opens Clerk's
 // self-serve sign-up modal (the same modal pattern app-shell uses for Sign in). If
@@ -19,6 +21,13 @@ export function StartFreeButton({
   variant = "default",
   className,
 }: StartFreeButtonProps) {
+  if (!clerkEnabled) {
+    return (
+      <Button asChild size={size} variant={variant} className={className}>
+        <Link to="/call/demo">{label}</Link>
+      </Button>
+    );
+  }
   return (
     <SignUpButton mode="modal">
       <Button size={size} variant={variant} className={className}>
