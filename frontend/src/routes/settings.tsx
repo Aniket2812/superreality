@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { useWorkspace } from "@/lib/workspace";
 
 export default function Settings() {
-  const { organization } = useWorkspace();
+  const { organization, isDemo } = useWorkspace();
 
   const [smsTo, setSmsTo] = useState("");
   const [saving, setSaving] = useState(false);
@@ -112,7 +112,7 @@ export default function Settings() {
         </CardContent>
       </Card>
 
-      <Card>
+      {!isDemo && <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <MessageSquare className="size-4 text-primary" /> Lead notifications
@@ -141,7 +141,7 @@ export default function Settings() {
           </div>
           {status && <p className="text-sm text-muted-foreground">{status}</p>}
         </CardContent>
-      </Card>
+      </Card>}
 
       {organization && (
         <Card>
@@ -176,7 +176,7 @@ export default function Settings() {
 
       <CallLinkCard />
 
-      <Card className="border-destructive/30">
+      {!isDemo && <Card className="border-destructive/30">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <RotateCcw className="size-4 text-destructive" /> Reset demo data
@@ -235,7 +235,7 @@ export default function Settings() {
             </Button>
           )}
         </CardContent>
-      </Card>
+      </Card>}
     </div>
   );
 }

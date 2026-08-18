@@ -46,7 +46,7 @@ function specLine(l: LiveListing): string {
 }
 
 export default function Listings() {
-  const { organization } = useWorkspace();
+  const { organization, isDemo } = useWorkspace();
   const realtor = organization?.name ?? "My agency";
 
   const [live, setLive] = useState<LiveListing[]>([]);
@@ -327,6 +327,7 @@ export default function Listings() {
         )}
       </section>
 
+      {!isDemo && <>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -562,6 +563,7 @@ export default function Listings() {
           )}
         </CardContent>
       </Card>
+      </>}
     </div>
   );
 }
