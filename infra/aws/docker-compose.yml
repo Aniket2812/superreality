@@ -1,4 +1,15 @@
 services:
+  # Production memory is CockroachDB Cloud. Keep the bundled node available for
+  # local development without spending EC2 memory on an unused second database.
+  db:
+    profiles: ["local-database-only"]
+
+  backend:
+    depends_on: !reset {}
+
+  seed:
+    depends_on: !reset {}
+
   caddy:
     image: caddy:2.10.2-alpine
     env_file: .env
